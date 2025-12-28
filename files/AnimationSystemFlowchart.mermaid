@@ -1,0 +1,27 @@
+flowchart TD
+    subgraph Logic["THE BRAIN"]
+        Instance["<b>Anim Instance (C++)</b><br/>Holds variables: Speed, bIsAttacking"]
+        Graph["<b>Anim Graph (Visual)</b><br/>Decides: 'If Speed > 0, show running'"]
+    end
+
+    subgraph Director["THE DIRECTOR"]
+        Montage["<b>Anim Montage</b><br/>Overrides the 'Brain' to play<br/>special actions (Attacks, Dodges)"]
+    end
+
+    subgraph Messenger["THE MESSENGER"]
+        Notify["<b>Anim Notify</b><br/>'At this frame, play a footstep sound'"]
+    end
+
+    subgraph Data["THE RAW DATA"]
+        Sequence["<b>Anim Sequence</b><br/>Raw 3D movement data"]
+    end
+
+    Instance --> Graph
+    Montage -->|Interrupts| Graph
+    Montage -->|Contains| Sequence
+    Sequence -->|Triggers| Notify
+
+    style Instance fill:#1a365d,stroke:#2c5282,color:#fff
+    style Montage fill:#44337a,stroke:#553c9a,color:#fff
+    style Notify fill:#b7791f,stroke:#d69e2e,color:#000
+    style Sequence fill:#2d3748,stroke:#4a5568,color:#fff
