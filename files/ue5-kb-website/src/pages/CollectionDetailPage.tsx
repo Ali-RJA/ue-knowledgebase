@@ -15,11 +15,17 @@ import { HtmlContent } from '../components/content/HtmlContent';
 import { TagChip } from '../components/content/TagChip';
 import { RelatedContent } from '../components/features/RelatedContent';
 
+// Collections that need iframe rendering (contain JavaScript)
+const IFRAME_COLLECTIONS = ['cpp-lego-pieces'];
+
 export const CollectionDetailPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const [collection, setCollection] = useState<Collection | null>(null);
   const [htmlContent, setHtmlContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  
+  // Check if this collection needs iframe rendering
+  const needsIframe = slug && IFRAME_COLLECTIONS.includes(slug);
 
   useEffect(() => {
     const loadCollection = async () => {
@@ -29,16 +35,19 @@ export const CollectionDetailPage = () => {
       if (foundCollection && foundCollection.type === 'collection') {
         setCollection(foundCollection);
 
-        // Load HTML content
-        try {
-          const response = await fetch(`/content/${foundCollection.sourcePath}`);
-          if (response.ok) {
-            const text = await response.text();
-            setHtmlContent(text);
+        // Skip loading HTML content if we're using iframe
+        if (!IFRAME_COLLECTIONS.includes(slug)) {
+          // Load HTML content
+          try {
+            const response = await fetch(`/content/${foundCollection.sourcePath}`);
+            if (response.ok) {
+              const text = await response.text();
+              setHtmlContent(text);
+            }
+          } catch (error) {
+            console.error('Error loading collection:', error);
+            setHtmlContent('<p>Content not available</p>');
           }
-        } catch (error) {
-          console.error('Error loading collection:', error);
-          setHtmlContent('<p>Content not available</p>');
         }
       }
       setLoading(false);
@@ -105,9 +114,33 @@ export const CollectionDetailPage = () => {
       </Box>
 
       {/* Full-width content */}
-      <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2, width: '100%' }}>
-        <HtmlContent html={htmlContent} />
-      </Box>
+      {needsIframe && collection ? (
+        <Box
+          sx={{
+            width: '100%',
+            height: 'calc(100vh - 200px)',
+            minHeight: 600,
+            borderRadius: 2,
+            overflow: 'hidden',
+            border: 1,
+            borderColor: 'divider',
+          }}
+        >
+          <iframe
+            src={`/content/${collection.sourcePath}`}
+            title={collection.title}
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+            }}
+          />
+        </Box>
+      ) : (
+        <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2, width: '100%' }}>
+          <HtmlContent html={htmlContent} />
+        </Box>
+      )}
     </Box>
   );
 };

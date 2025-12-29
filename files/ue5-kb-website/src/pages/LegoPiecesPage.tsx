@@ -1,57 +1,140 @@
-import { useState } from 'react';
-import { Box, Container, Typography, Grid, Tabs, Tab, Button } from '@mui/material';
+import { useState, useMemo } from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Chip,
+  InputBase,
+  Button,
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import SearchIcon from '@mui/icons-material/Search';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { ContentCard } from '../components/features/ContentCard';
 import { legoPieces } from '../data/content-index';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
-// Get unique piece types
-const pieceTypes = ['All', ...Array.from(new Set(legoPieces.map(p => p.pieceType)))];
+// Get unique piece types with counts
+const pieceTypeData = (() => {
+  const counts: Record<string, number> = { All: legoPieces.length };
+  legoPieces.forEach(p => {
+    counts[p.pieceType] = (counts[p.pieceType] || 0) + 1;
+  });
+  return Object.entries(counts).map(([type, count]) => ({ type, count }));
+})();
 
 export const LegoPiecesPage = () => {
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredPieces = selectedType === 'All'
-    ? legoPieces
-    : legoPieces.filter(p => p.pieceType === selectedType);
+  const filteredPieces = useMemo(() => {
+    let pieces = selectedType === 'All'
+      ? legoPieces
+      : legoPieces.filter(p => p.pieceType === selectedType);
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      pieces = pieces.filter(p =>
+        p.title.toLowerCase().includes(query) ||
+        p.summary.toLowerCase().includes(query) ||
+        p.tags.some(t => t.toLowerCase().includes(query)) ||
+        p.codeSnippet.toLowerCase().includes(query)
+      );
+    }
+    
+    return pieces;
+  }, [selectedType, searchQuery]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-        <Box>
-          <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
-            Lego Pieces
-          </Typography>
-          <Typography variant="body1" color="text.secondary" paragraph>
-            Reusable C++ code snippets and patterns for Unreal Engine development.
-          </Typography>
+    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3, width: '100%' }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+          <Box>
+            <Typography 
+              variant="h3" 
+              component="h1" 
+              fontWeight={800}
+              sx={{
+                background: 'linear-gradient(90deg, #38bdf8, #a78bfa)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              🧱 Lego Pieces
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Reusable C++ code snippets and patterns for Unreal Engine 5 development.
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            endIcon={<OpenInNewIcon />}
+            onClick={() => navigate('/collection/cpp-lego-pieces')}
+            sx={{ flexShrink: 0 }}
+          >
+            Full Interactive Library (100+)
+          </Button>
         </Box>
-        <Button
-          variant="outlined"
-          endIcon={<ArrowForwardIcon />}
-          onClick={() => navigate('/collection/cpp-lego-pieces')}
-        >
-          Full Library (100+)
-        </Button>
-      </Box>
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
-        <Tabs
-          value={selectedType}
-          onChange={(_, newValue) => setSelectedType(newValue)}
-          variant="scrollable"
-          scrollButtons="auto"
+        {/* Search Bar */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            border: 1,
+            borderColor: 'divider',
+            px: 2,
+            py: 1,
+            maxWidth: 500,
+            mb: 3,
+            '&:focus-within': {
+              borderColor: 'primary.main',
+              boxShadow: '0 0 0 2px rgba(56, 189, 248, 0.2)',
+            },
+          }}
         >
-          {pieceTypes.map((type) => (
-            <Tab key={type} label={type} value={type} />
+          <SearchIcon sx={{ mr: 1, opacity: 0.6 }} />
+          <InputBase
+            placeholder="Search snippets (e.g. 'overlap', 'timer', 'delegate')..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ flexGrow: 1 }}
+          />
+        </Box>
+
+        {/* Category Filter Chips */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+          {pieceTypeData.map(({ type, count }) => (
+            <Chip
+              key={type}
+              label={`${type} (${count})`}
+              onClick={() => setSelectedType(type)}
+              variant={selectedType === type ? 'filled' : 'outlined'}
+              color={selectedType === type ? 'primary' : 'default'}
+              sx={{
+                fontWeight: selectedType === type ? 600 : 400,
+                '&:hover': {
+                  bgcolor: selectedType === type ? 'primary.dark' : 'action.hover',
+                },
+              }}
+            />
           ))}
-        </Tabs>
+        </Box>
       </Box>
 
+      {/* Results count */}
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Showing {filteredPieces.length} piece{filteredPieces.length !== 1 ? 's' : ''}
+        {searchQuery && ` matching "${searchQuery}"`}
+      </Typography>
+
+      {/* Grid of pieces */}
       <Grid container spacing={3}>
         {filteredPieces.map((piece) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={piece.id}>
+          <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={piece.id}>
             <ContentCard content={piece} />
           </Grid>
         ))}
@@ -59,11 +142,14 @@ export const LegoPiecesPage = () => {
 
       {filteredPieces.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography variant="h6" color="text.secondary">
-            No pieces found in this category
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No pieces found
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Try adjusting your search or filter criteria.
           </Typography>
         </Box>
       )}
-    </Container>
+    </Box>
   );
 };

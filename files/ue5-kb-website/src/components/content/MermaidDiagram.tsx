@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useId } from 'react';
 import { Box, IconButton, Tooltip, CircularProgress, Slider, Stack, Typography } from '@mui/material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
@@ -12,12 +12,16 @@ interface MermaidDiagramProps {
   interactive?: boolean; // Enable pan/zoom mode
 }
 
+// Counter for unique IDs across renders
+let mermaidIdCounter = 0;
+
 export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const elementRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const diagramId = id || `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+  const [svgContent, setSvgContent] = useState<string>('');
+  const reactId = useId();
   
   // Pan/zoom state
   const [scale, setScale] = useState(1);
@@ -25,6 +29,7 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  // Initialize mermaid once
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
@@ -36,26 +41,51 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
 
   useEffect(() => {
     const renderDiagram = async () => {
-      if (!elementRef.current || !chart) return;
+      if (!chart || !chart.trim()) {
+        setError('No diagram content provided');
+        setLoading(false);
+        return;
+      }
 
       setLoading(true);
       setError(null);
 
+      // Generate truly unique ID for each render
+      mermaidIdCounter++;
+      const uniqueId = id 
+        ? `${id.replace(/[^a-zA-Z0-9]/g, '')}-${mermaidIdCounter}` 
+        : `mermaid-${reactId.replace(/:/g, '')}-${mermaidIdCounter}-${Date.now()}`;
+
+      // Clean up any existing mermaid elements with this ID pattern
+      const existingElements = document.querySelectorAll(`[id^="${uniqueId}"]`);
+      existingElements.forEach(el => el.remove());
+
       try {
-        const { svg } = await mermaid.render(diagramId, chart);
-        if (elementRef.current) {
-          elementRef.current.innerHTML = svg;
+        // Validate basic mermaid syntax before rendering
+        const trimmedChart = chart.trim();
+        const validStarters = ['graph', 'flowchart', 'sequenceDiagram', 'classDiagram', 'stateDiagram', 'erDiagram', 'journey', 'gantt', 'pie', 'gitGraph', 'mindmap', 'timeline', 'quadrantChart', 'xychart', 'sankey', 'block'];
+        const hasValidStart = validStarters.some(starter => 
+          trimmedChart.toLowerCase().startsWith(starter.toLowerCase())
+        );
+        
+        if (!hasValidStart) {
+          throw new Error('Invalid mermaid diagram syntax');
         }
+
+        const { svg } = await mermaid.render(uniqueId, trimmedChart);
+        setSvgContent(svg);
       } catch (err) {
         console.error('Mermaid rendering error:', err);
-        setError('Failed to render diagram');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to render diagram';
+        setError(`Diagram error: ${errorMessage}`);
+        setSvgContent('');
       } finally {
         setLoading(false);
       }
     };
 
     renderDiagram();
-  }, [chart, diagramId]);
+  }, [chart, id, reactId]);
 
   // Reset view
   const handleReset = useCallback(() => {
@@ -234,6 +264,7 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
               height: 'auto',
             },
           }}
+          dangerouslySetInnerHTML={{ __html: svgContent }}
         />
       </Box>
       
