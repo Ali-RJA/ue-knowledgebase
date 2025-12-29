@@ -585,7 +585,7 @@ TObjectPtr<UStaticMeshComponent> WeaponMesh;`,
                     <p>If you have a pointer to a <code>UObject</code> that is NOT a <code>UPROPERTY</code>, the Garbage Collector won't know you're using it and might delete it while your code is still running, leading to <strong>Null Pointer Crashes</strong>.</p>
                 `,
                 concepts: ["Garbage Collection", "Detail Panels", "Metadata Specifiers"],
-                practices: ["Always use UPROPERTY for UObject pointers", "Use Categories for organization", "Add ClampMin/Max for designer safety"]
+                practices: ["Always use UPROPERTY for UObject pointers", "Use TObjectPtr<T> for class members", "Use Categories for organization", "Add ClampMin/Max for designer safety"]
             },
             {
                 id: 3,
@@ -801,7 +801,7 @@ struct FWeaponStats
                     <p>This is standard for components (Mesh, Camera, SpringArm) in professional UE5 codebases. It enforces good C++ architecture without hindering the design workflow.</p>
                 `,
                 concepts: ["Encapsulation", "C++/BP Security", "Least Privilege"],
-                practices: ["Use for all private components", "Keep gameplay-critical variables private but accessible"]
+                practices: ["Use for all private components", "Use TObjectPtr for private UObject members", "Keep gameplay-critical variables private but accessible"]
             },
             {
                 id: 9,
@@ -840,7 +840,7 @@ protected:
                     <p>This prevents "FindWidget" calls and manual casting, making your UI code significantly faster and safer.</p>
                 `,
                 concepts: ["UMG Integration", "Auto-Wiring", "UI/Logic Separation"],
-                practices: ["Use BindWidget for critical UI", "Use BindWidgetOptional for decorative elements", "Validate pointers before use"]
+                practices: ["Use BindWidget for critical UI", "Use TObjectPtr for widget members", "Use BindWidgetOptional for decorative elements", "Validate pointers before use"]
             },
             {
                 id: 10,
@@ -2270,7 +2270,7 @@ void AMyChar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     UEnhancedInputComponent* EIP = Cast<UEnhancedInputComponent>(PlayerInputComponent);
     if (EIP)
     {
-        EIP->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AMyChar::Jump);
+        EIP->BindAction(JumpAction, ETriggerEvent::Started, this, &AMyChar::Jump);
     }
 }`,
                 explanation: `
@@ -2281,7 +2281,7 @@ void AMyChar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
                     <p>You can swap contexts on the fly. For example, when the player enters a vehicle, you can remove the "Walking" context and add the "Driving" context, automatically changing what the buttons do.</p>
                 `,
                 concepts: ["Input Actions", "Mapping Contexts", "Input Modifiers"],
-                practices: ["Use for all new projects", "Provide default assets in C++", "Check ETriggerEvent types"]
+                practices: ["Use for all new projects", "Provide default assets in C++", "Check ETriggerEvent types (Started for one-off actions)"]
             },
 
             // --- IX. UI & DEBUG ---
@@ -2909,9 +2909,9 @@ void AMyCharacter::OnAttackFinished(UAnimMontage* Montage, bool bInterrupted) {
                     Event --> BlackB[Update Blackboard]`,
                 code: `// --- MyAIController.h ---
 UPROPERTY(VisibleAnywhere)
-UAIPerceptionComponent* PerceptionComp;
+TObjectPtr<UAIPerceptionComponent> PerceptionComp;
 
-UAISenseConfig_Sight* SightConfig;
+TObjectPtr<UAISenseConfig_Sight> SightConfig;
 
 // --- MyAIController.cpp ---
 AMyAIController::AMyAIController() {
@@ -2933,7 +2933,7 @@ AMyAIController::AMyAIController() {
                     <p>The component manages various "Senses". When a "Stimulus" (like a player walking into view) is detected, it triggers the <code>OnTargetPerceptionUpdated</code> delegate. This allows your AI to react only when something actually changes.</p>
                 `,
                 concepts: ["AI Senses", "Stimulus Handling", "NPC Awareness"],
-                practices: ["Set a Dominant Sense", "Use LoseSightRadius for 'chase' behavior", "Configure collision channels for sight"]
+                practices: ["Set a Dominant Sense", "Use TObjectPtr for components and sense configs", "Use LoseSightRadius for 'chase' behavior", "Configure collision channels for sight"]
             },
             {
                 id: 204,
@@ -3125,7 +3125,7 @@ Score->AddScore(100);`,
                     P[Player] --"Presses Key"--> IA`,
                 code: `// --- MyCharacter.h ---
 UPROPERTY(EditAnywhere, Category="Input")
-UInputAction* MoveAction;
+TObjectPtr<UInputAction> MoveAction;
 
 // --- MyCharacter.cpp ---
 void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
@@ -3153,7 +3153,7 @@ void AMyCharacter::Move(const FInputActionValue& Value) {
                     </ul>
                 `,
                 concepts: ["Input Binding", "Action Values", "Unified Input"],
-                practices: ["Use CastChecked for safety", "Keep movement logic in Triggered", "Use Started for one-off actions like Jump"]
+                practices: ["Use CastChecked for safety", "Use TObjectPtr for InputAction members", "Keep movement logic in Triggered", "Use Started for one-off actions like Jump"]
             },
             {
                 id: 221,

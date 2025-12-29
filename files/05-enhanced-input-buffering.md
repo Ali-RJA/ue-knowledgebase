@@ -190,8 +190,8 @@ void AHattinPlayerController::SetupInputComponent()
     UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent);
     if (EIC)
     {
-        EIC->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &ThisClass::OnAttackInput);
-        EIC->BindAction(IA_Dodge, ETriggerEvent::Triggered, this, &ThisClass::OnDodgeInput);
+        EIC->BindAction(IA_Attack, ETriggerEvent::Started, this, &ThisClass::OnAttackInput);
+        EIC->BindAction(IA_Dodge, ETriggerEvent::Started, this, &ThisClass::OnDodgeInput);
         EIC->BindAction(IA_Move, ETriggerEvent::Triggered, this, &ThisClass::OnMoveInput);
         EIC->BindAction(IA_Look, ETriggerEvent::Triggered, this, &ThisClass::OnLookInput);
     }

@@ -515,7 +515,7 @@ flowchart TB
     subgraph MEMORY["🧠 MEMORY MANAGEMENT REFERENCE"]
         direction TB
         
-        PTR_TYPES["<b>Pointer Types</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY T*: GC-tracked ✓<br/>TWeakObjectPtr: safe weak ✓<br/>Raw T*: NOT GC-aware ⚠️<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>if ptr: null check<br/>IsValid ptr: null + pending kill<br/>WeakPtr.IsValid: safe check"]
+        PTR_TYPES["<b>Pointer Types</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY TObjectPtr&lt;T&gt;: GC-tracked ✓<br/>TWeakObjectPtr: safe weak ✓<br/>Raw T*: NOT GC-aware ⚠️<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>if ptr: null check<br/>IsValid ptr: null + pending kill<br/>WeakPtr.IsValid: safe check"]
         
         DEL_SAFETY["<b>Delegate Safety</b><br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>AddUObject stores weak ptr<br/>Auto-removes on destroy<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>NEVER bind raw ptr ⚠️<br/>NEVER capture raw in lambda ⚠️"]
     end
