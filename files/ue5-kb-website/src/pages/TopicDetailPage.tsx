@@ -6,7 +6,7 @@ import {
   Typography,
   Breadcrumbs,
   Link,
-  Grid2,
+  Grid,
   Chip,
   CircularProgress,
 } from '@mui/material';
@@ -82,8 +82,8 @@ export const TopicDetailPage = () => {
         <Typography color="text.primary">{topic.title}</Typography>
       </Breadcrumbs>
 
-      <Grid2 container spacing={4}>
-        <Grid2 size={{ xs: 12, lg: 8 }}>
+      <Grid container spacing={4}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
               {topic.title}
@@ -105,14 +105,15 @@ export const TopicDetailPage = () => {
           <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2 }}>
             <MarkdownRenderer content={content} />
           </Box>
-        </Grid2>
+        </Grid>
 
-        <Grid2 size={{ xs: 12, lg: 4 }}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Box sx={{ position: 'sticky', top: 80 }}>
             <RelatedContent items={relatedItems} />
           </Box>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
     </Container>
   );
 };
+

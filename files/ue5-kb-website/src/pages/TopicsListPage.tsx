@@ -5,7 +5,7 @@ import {
   Typography,
   Tabs,
   Tab,
-  Grid2,
+  Grid,
 } from '@mui/material';
 import { ContentCard } from '../components/features/ContentCard';
 import { getContentByCategory } from '../data/content-index';
@@ -45,13 +45,13 @@ export const TopicsListPage = () => {
         </Tabs>
       </Box>
 
-      <Grid2 container spacing={3}>
+      <Grid container spacing={3}>
         {topics.map((topic) => (
-          <Grid2 size={{ xs: 12, sm: 6, md: 4 }} key={topic.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={topic.id}>
             <ContentCard content={topic} />
-          </Grid2>
+          </Grid>
         ))}
-      </Grid2>
+      </Grid>
 
       {topics.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -63,3 +63,4 @@ export const TopicsListPage = () => {
     </Container>
   );
 };
+

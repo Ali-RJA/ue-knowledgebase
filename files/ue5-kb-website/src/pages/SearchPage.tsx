@@ -5,7 +5,7 @@ import {
   Container,
   Typography,
   TextField,
-  Grid2,
+  Grid,
   InputAdornment,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -94,13 +94,13 @@ export const SearchPage = () => {
         </Typography>
       )}
 
-      <Grid2 container spacing={3}>
+      <Grid container spacing={3}>
         {results.map((item) => (
-          <Grid2 size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
             <ContentCard content={item} />
-          </Grid2>
+          </Grid>
         ))}
-      </Grid2>
+      </Grid>
 
       {(query || tag) && results.length === 0 && (
         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -120,3 +120,4 @@ export const SearchPage = () => {
     </Container>
   );
 };
+

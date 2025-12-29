@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Grid2, Button } from '@mui/material';
+import { Box, Container, Typography, Grid, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { ContentCard } from '../components/features/ContentCard';
 import { topics, diagrams, collections } from '../data/content-index';
@@ -76,13 +76,13 @@ export const HomePage = () => {
               View All
             </Button>
           </Box>
-          <Grid2 container spacing={3}>
+          <Grid container spacing={3}>
             {featuredTopics.map((topic) => (
-              <Grid2 size={{ xs: 12, md: 4 }} key={topic.id}>
+              <Grid size={{ xs: 12, md: 4 }} key={topic.id}>
                 <ContentCard content={topic} />
-              </Grid2>
+              </Grid>
             ))}
-          </Grid2>
+          </Grid>
         </Box>
 
         {/* Featured Diagrams */}
@@ -95,13 +95,13 @@ export const HomePage = () => {
               View All
             </Button>
           </Box>
-          <Grid2 container spacing={3}>
+          <Grid container spacing={3}>
             {featuredDiagrams.map((diagram) => (
-              <Grid2 size={{ xs: 12, md: 4 }} key={diagram.id}>
+              <Grid size={{ xs: 12, md: 4 }} key={diagram.id}>
                 <ContentCard content={diagram} />
-              </Grid2>
+              </Grid>
             ))}
-          </Grid2>
+          </Grid>
         </Box>
 
         {/* Collections */}
@@ -109,15 +109,16 @@ export const HomePage = () => {
           <Typography variant="h4" component="h2" fontWeight={700} gutterBottom>
             Special Collections
           </Typography>
-          <Grid2 container spacing={3}>
+          <Grid container spacing={3}>
             {collections.map((collection) => (
-              <Grid2 size={{ xs: 12, md: 6 }} key={collection.id}>
+              <Grid size={{ xs: 12, md: 6 }} key={collection.id}>
                 <ContentCard content={collection} />
-              </Grid2>
+              </Grid>
             ))}
-          </Grid2>
+          </Grid>
         </Box>
       </Container>
     </Box>
   );
 };
+

@@ -6,7 +6,7 @@ import {
   Typography,
   Breadcrumbs,
   Link,
-  Grid2,
+  Grid,
   Chip,
   CircularProgress,
 } from '@mui/material';
@@ -79,8 +79,8 @@ export const CollectionDetailPage = () => {
         <Typography color="text.primary">{collection.title}</Typography>
       </Breadcrumbs>
 
-      <Grid2 container spacing={4}>
-        <Grid2 size={{ xs: 12, lg: relatedItems.length > 0 ? 8 : 12 }}>
+      <Grid container spacing={4}>
+        <Grid size={{ xs: 12, lg: relatedItems.length > 0 ? 8 : 12 }}>
           <Box sx={{ mb: 3 }}>
             <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
               {collection.title}
@@ -101,16 +101,17 @@ export const CollectionDetailPage = () => {
           <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2 }}>
             <HtmlContent html={htmlContent} />
           </Box>
-        </Grid2>
+        </Grid>
 
         {relatedItems.length > 0 && (
-          <Grid2 size={{ xs: 12, lg: 4 }}>
+          <Grid size={{ xs: 12, lg: 4 }}>
             <Box sx={{ position: 'sticky', top: 80 }}>
               <RelatedContent items={relatedItems} />
             </Box>
-          </Grid2>
+          </Grid>
         )}
-      </Grid2>
+      </Grid>
     </Container>
   );
 };
+

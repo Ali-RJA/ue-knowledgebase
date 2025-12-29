@@ -1,4 +1,4 @@
-import { Container, Typography, Grid2 } from '@mui/material';
+import { Container, Typography, Grid } from '@mui/material';
 import { ContentCard } from '../components/features/ContentCard';
 import { collections } from '../data/content-index';
 
@@ -12,13 +12,14 @@ export const CollectionsPage = () => {
         Comprehensive collections of UE5 knowledge, architecture, and code libraries.
       </Typography>
 
-      <Grid2 container spacing={3}>
+      <Grid container spacing={3}>
         {collections.map((collection) => (
-          <Grid2 size={{ xs: 12, md: 6 }} key={collection.id}>
+          <Grid size={{ xs: 12, md: 6 }} key={collection.id}>
             <ContentCard content={collection} />
-          </Grid2>
+          </Grid>
         ))}
-      </Grid2>
+      </Grid>
     </Container>
   );
 };
+

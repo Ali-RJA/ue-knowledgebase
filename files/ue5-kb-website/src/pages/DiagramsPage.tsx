@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Grid2 } from '@mui/material';
+import { Box, Container, Typography, Grid } from '@mui/material';
 import { ContentCard } from '../components/features/ContentCard';
 import { diagrams } from '../data/content-index';
 
@@ -27,15 +27,16 @@ export const DiagramsPage = () => {
           <Typography variant="h5" component="h2" fontWeight={600} gutterBottom sx={{ mb: 3 }}>
             {category.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
           </Typography>
-          <Grid2 container spacing={3}>
+          <Grid container spacing={3}>
             {items.map((diagram) => (
-              <Grid2 size={{ xs: 12, sm: 6, md: 4 }} key={diagram.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={diagram.id}>
                 <ContentCard content={diagram} />
-              </Grid2>
+              </Grid>
             ))}
-          </Grid2>
+          </Grid>
         </Box>
       ))}
     </Container>
   );
 };
+
