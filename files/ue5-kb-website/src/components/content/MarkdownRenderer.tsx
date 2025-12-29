@@ -48,7 +48,19 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
           ),
           code: ({ className, children }) => {
             const match = /language-(\w+)/.exec(className || '');
-            const codeString = String(children).replace(/\n$/, '');
+            // Extract text content from children, handling both strings and React nodes
+            const extractText = (node: React.ReactNode): string => {
+              if (typeof node === 'string') return node;
+              if (typeof node === 'number') return String(node);
+              if (!node) return '';
+              if (Array.isArray(node)) return node.map(extractText).join('');
+              if (typeof node === 'object' && node !== null && 'props' in node) {
+                const element = node as { props?: { children?: React.ReactNode } };
+                return extractText(element.props?.children);
+              }
+              return '';
+            };
+            const codeString = extractText(children).replace(/\n$/, '');
             const language = match ? match[1] : undefined;
             const inline = !className && !codeString.includes('\n');
 

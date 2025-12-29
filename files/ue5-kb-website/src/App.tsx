@@ -10,6 +10,7 @@ import { LegoPiecesPage } from './pages/LegoPiecesPage';
 import { LegoPieceDetailPage } from './pages/LegoPieceDetailPage';
 import { CollectionsPage } from './pages/CollectionsPage';
 import { CollectionDetailPage } from './pages/CollectionDetailPage';
+import { AnimNotifyArchitecturePage } from './pages/AnimNotifyArchitecturePage';
 import { SearchPage } from './pages/SearchPage';
 import { AboutPage } from './pages/AboutPage';
 
@@ -36,6 +37,7 @@ function App() {
 
             {/* Collections */}
             <Route path="/collections" element={<CollectionsPage />} />
+            <Route path="/collection/anim-notify-architecture" element={<AnimNotifyArchitecturePage />} />
             <Route path="/collection/:slug" element={<CollectionDetailPage />} />
 
             {/* Utility pages */}
