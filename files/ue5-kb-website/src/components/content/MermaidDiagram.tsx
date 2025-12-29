@@ -1,22 +1,26 @@
-import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { Box, IconButton, Tooltip, CircularProgress, Slider, Stack, Typography, Chip } from '@mui/material';
+import { useEffect, useRef, useState, useId } from 'react';
+import { Box, IconButton, Tooltip, CircularProgress, Typography, Chip, Stack } from '@mui/material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
+import FitScreenIcon from '@mui/icons-material/FitScreen';
 import MouseIcon from '@mui/icons-material/Mouse';
 import mermaid from 'mermaid';
+import type { MermaidConfig } from 'mermaid';
+import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
 
 interface MermaidDiagramProps {
   chart: string;
   id?: string;
-  interactive?: boolean; // Enable pan/zoom mode
+  interactive?: boolean;
 }
 
 // Counter for unique IDs across renders
 let mermaidIdCounter = 0;
 
-// Global scroll zoom state - shared across all diagram instances
+// Global scroll zoom state - shared across all diagram instances on the page
 let globalScrollZoomEnabled = true;
 const scrollZoomListeners = new Set<(enabled: boolean) => void>();
 
@@ -30,22 +34,151 @@ const subscribeToScrollZoom = (listener: (enabled: boolean) => void) => {
   return () => scrollZoomListeners.delete(listener);
 };
 
+// Mermaid configuration matching the reference HTML that renders beautifully
+const getMermaidConfig = (): MermaidConfig => ({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#1a1a2e',
+    primaryTextColor: '#eee',
+    primaryBorderColor: '#4a4a6a',
+    lineColor: '#61dafb',
+    secondaryColor: '#16213e',
+    tertiaryColor: '#0f3460',
+    noteBkgColor: '#ffd93d',
+    noteTextColor: '#000',
+    fontSize: '14px',
+  },
+  flowchart: {
+    useMaxWidth: false,
+    htmlLabels: true,
+    curve: 'basis',
+    nodeSpacing: 30,
+    rankSpacing: 50,
+  },
+  sequence: {
+    useMaxWidth: false,
+  },
+  securityLevel: 'loose',
+  fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+});
+
+// Toolbar controls component that uses the transform context
+const DiagramControls = ({ 
+  scale, 
+  onFullscreen,
+  isFullscreen,
+  scrollZoomEnabled,
+  onToggleScrollZoom,
+}: { 
+  scale: number;
+  onFullscreen: () => void;
+  isFullscreen: boolean;
+  scrollZoomEnabled: boolean;
+  onToggleScrollZoom: () => void;
+}) => {
+  const { zoomIn, zoomOut, resetTransform, centerView } = useControls();
+
+  return (
+    <Stack
+      direction="row"
+      spacing={0.5}
+      alignItems="center"
+      sx={{
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        zIndex: 10,
+        bgcolor: 'rgba(18, 18, 18, 0.9)',
+        backdropFilter: 'blur(8px)',
+        borderRadius: 1,
+        px: 1,
+        py: 0.5,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        border: '1px solid rgba(255,255,255,0.1)',
+      }}
+    >
+      <Tooltip title="Zoom out (-10%)">
+        <IconButton size="small" onClick={() => zoomOut(0.1)} sx={{ color: 'grey.300' }}>
+          <ZoomOutIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      
+      <Chip
+        label={`${Math.round(scale * 100)}%`}
+        size="small"
+        sx={{
+          height: 24,
+          minWidth: 52,
+          bgcolor: 'rgba(97, 218, 251, 0.15)',
+          color: '#61dafb',
+          fontWeight: 600,
+          fontSize: '0.75rem',
+          '& .MuiChip-label': { px: 1 },
+        }}
+      />
+      
+      <Tooltip title="Zoom in (+10%)">
+        <IconButton size="small" onClick={() => zoomIn(0.1)} sx={{ color: 'grey.300' }}>
+          <ZoomInIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      
+      <Box sx={{ width: 1, height: 20, borderLeft: 1, borderColor: 'rgba(255,255,255,0.2)', mx: 0.5 }} />
+      
+      <Tooltip title="Reset to 100%">
+        <IconButton size="small" onClick={() => resetTransform()} sx={{ color: 'grey.300' }}>
+          <CenterFocusStrongIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      
+      <Tooltip title="Fit to view">
+        <IconButton size="small" onClick={() => centerView(0.8)} sx={{ color: 'grey.300' }}>
+          <FitScreenIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      
+      <Tooltip title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+        <IconButton size="small" onClick={onFullscreen} sx={{ color: 'grey.300' }}>
+          {isFullscreen ? <FullscreenExitIcon fontSize="small" /> : <FullscreenIcon fontSize="small" />}
+        </IconButton>
+      </Tooltip>
+      
+      <Box sx={{ width: 1, height: 20, borderLeft: 1, borderColor: 'rgba(255,255,255,0.2)', mx: 0.5 }} />
+      
+      <Tooltip title={scrollZoomEnabled ? 'Scroll zooms diagram (click to toggle)' : 'Scroll moves page (click to toggle)'}>
+        <Chip
+          icon={<MouseIcon sx={{ fontSize: 14 }} />}
+          label={scrollZoomEnabled ? 'Zoom' : 'Scroll'}
+          size="small"
+          onClick={onToggleScrollZoom}
+          sx={{
+            height: 24,
+            cursor: 'pointer',
+            bgcolor: scrollZoomEnabled ? 'rgba(97, 218, 251, 0.2)' : 'rgba(255,255,255,0.1)',
+            color: scrollZoomEnabled ? '#61dafb' : 'grey.400',
+            border: scrollZoomEnabled ? '1px solid rgba(97, 218, 251, 0.4)' : '1px solid transparent',
+            '& .MuiChip-label': { px: 0.75, fontSize: '0.7rem' },
+            '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
+            '&:hover': {
+              bgcolor: scrollZoomEnabled ? 'rgba(97, 218, 251, 0.3)' : 'rgba(255,255,255,0.15)',
+            },
+          }}
+        />
+      </Tooltip>
+    </Stack>
+  );
+};
+
 export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const elementRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
-  const reactId = useId();
-  
-  // Pan/zoom state
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  
-  // Scroll mode toggle (true = zoom, false = page scroll) - synced globally
+  const [currentScale, setCurrentScale] = useState(0.7);
   const [scrollZoomEnabled, setScrollZoomEnabled] = useState(globalScrollZoomEnabled);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const reactId = useId();
 
   // Subscribe to global scroll zoom changes
   useEffect(() => {
@@ -53,16 +186,25 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
     return () => { unsubscribe(); };
   }, []);
 
-  // Initialize mermaid once
+  // Listen for fullscreen changes
   useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'dark',
-      securityLevel: 'loose',
-      fontFamily: 'Inter, sans-serif',
-    });
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  const handleToggleScrollZoom = () => {
+    setGlobalScrollZoom(!scrollZoomEnabled);
+  };
+
+  // Initialize mermaid once
+  useEffect(() => {
+    mermaid.initialize(getMermaidConfig());
+  }, []);
+
+  // Render the diagram
   useEffect(() => {
     const renderDiagram = async () => {
       if (!chart || !chart.trim()) {
@@ -87,7 +229,12 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
       try {
         // Validate basic mermaid syntax before rendering
         const trimmedChart = chart.trim();
-        const validStarters = ['graph', 'flowchart', 'sequenceDiagram', 'classDiagram', 'stateDiagram', 'erDiagram', 'journey', 'gantt', 'pie', 'gitGraph', 'mindmap', 'timeline', 'quadrantChart', 'xychart', 'sankey', 'block'];
+        const validStarters = [
+          'graph', 'flowchart', 'sequenceDiagram', 'classDiagram', 
+          'stateDiagram', 'erDiagram', 'journey', 'gantt', 'pie', 
+          'gitGraph', 'mindmap', 'timeline', 'quadrantChart', 
+          'xychart', 'sankey', 'block'
+        ];
         const hasValidStart = validStarters.some(starter => 
           trimmedChart.toLowerCase().startsWith(starter.toLowerCase())
         );
@@ -111,86 +258,49 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
     renderDiagram();
   }, [chart, id, reactId]);
 
-  // Reset view
-  const handleReset = useCallback(() => {
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
-  }, []);
-
-  // Zoom handlers
-  const handleZoomIn = useCallback(() => {
-    setScale((s) => Math.min(s * 1.2, 4));
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    setScale((s) => Math.max(s / 1.2, 0.25));
-  }, []);
-
-  const handleSliderChange = useCallback((_: Event, value: number | number[]) => {
-    setScale(value as number);
-  }, []);
-
-  // Ref for the zoomable container to attach native wheel listener
-  const zoomContainerRef = useRef<HTMLDivElement>(null);
-
-  // Native wheel event listener to properly prevent scroll
-  useEffect(() => {
-    const container = zoomContainerRef.current;
-    if (!container || !interactive) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Only intercept scroll if zoom mode is enabled
-      if (!scrollZoomEnabled) return;
-      
-      e.preventDefault();
-      e.stopPropagation();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setScale((s) => Math.max(0.25, Math.min(4, s * delta)));
-    };
-
-    // Use passive: false to allow preventDefault
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    
-    return () => {
-      container.removeEventListener('wheel', handleWheel);
-    };
-  }, [interactive, scrollZoomEnabled]);
-
-  // Right-click toggle for scroll mode - updates globally
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    if (!interactive) return;
-    e.preventDefault();
-    setGlobalScrollZoom(!scrollZoomEnabled);
-  }, [interactive, scrollZoomEnabled]);
-
-  // Pan handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (!interactive) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-  }, [interactive, position]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging || !interactive) return;
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
-  }, [isDragging, interactive, dragStart]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
   const handleFullscreen = () => {
-    if (containerRef.current) {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else if (containerRef.current) {
       containerRef.current.requestFullscreen();
     }
   };
+
+  // Non-interactive mode - just render the SVG
+  if (!interactive) {
+    return (
+      <Box
+        sx={{
+          my: 3,
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          border: 1,
+          borderColor: 'divider',
+          overflow: 'hidden',
+          p: 2,
+        }}
+      >
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+            <CircularProgress />
+          </Box>
+        )}
+        {error && (
+          <Box sx={{ p: 2, color: 'error.main' }}>{error}</Box>
+        )}
+        {!loading && !error && (
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              justifyContent: 'center',
+              '& svg': { maxWidth: '100%', height: 'auto' }
+            }}
+            dangerouslySetInnerHTML={{ __html: svgContent }} 
+          />
+        )}
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -198,166 +308,126 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
       sx={{
         position: 'relative',
         my: 3,
-        bgcolor: 'background.paper',
+        bgcolor: '#0d1117',
         borderRadius: 2,
         border: 1,
-        borderColor: 'divider',
+        borderColor: 'rgba(97, 218, 251, 0.3)',
         overflow: 'hidden',
-        minHeight: 300,
+        height: '60vh',
+        minHeight: 400,
+        // Fullscreen styles
+        '&:fullscreen': {
+          height: '100vh',
+          bgcolor: '#0d1117',
+        },
       }}
     >
-      {/* Toolbar */}
-      {interactive && !loading && !error && (
-        <Stack
-          direction="row"
-          spacing={1}
-          alignItems="center"
-          sx={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            zIndex: 10,
-            bgcolor: 'background.default',
-            borderRadius: 1,
-            px: 1,
-            py: 0.5,
-            boxShadow: 1,
+      {loading && (
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '100%',
+          flexDirection: 'column',
+          gap: 2,
+        }}>
+          <CircularProgress sx={{ color: '#61dafb' }} />
+          <Typography variant="caption" sx={{ color: 'grey.500' }}>
+            Rendering diagram...
+          </Typography>
+        </Box>
+      )}
+      
+      {error && (
+        <Box sx={{ 
+          p: 3, 
+          color: 'error.main',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+        }}>
+          <Typography>{error}</Typography>
+        </Box>
+      )}
+      
+      {!loading && !error && svgContent && (
+        <TransformWrapper
+          initialScale={0.7}
+          minScale={0.1}
+          maxScale={5}
+          centerOnInit={true}
+          wheel={{ disabled: !scrollZoomEnabled, step: 0.05 }}
+          panning={{ velocityDisabled: true }}
+          doubleClick={{ disabled: false, mode: 'reset' }}
+          onTransformed={(_, state) => {
+            setCurrentScale(state.scale);
           }}
         >
-          <Tooltip title="Zoom out">
-            <IconButton size="small" onClick={handleZoomOut}>
-              <ZoomOutIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Slider
-            value={scale}
-            onChange={handleSliderChange}
-            min={0.25}
-            max={4}
-            step={0.1}
-            sx={{ width: 100 }}
-            size="small"
+          <DiagramControls 
+            scale={currentScale} 
+            onFullscreen={handleFullscreen}
+            isFullscreen={isFullscreen}
+            scrollZoomEnabled={scrollZoomEnabled}
+            onToggleScrollZoom={handleToggleScrollZoom}
           />
-          <Tooltip title="Zoom in">
-            <IconButton size="small" onClick={handleZoomIn}>
-              <ZoomInIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Typography variant="caption" sx={{ minWidth: 40, textAlign: 'center' }}>
-            {Math.round(scale * 100)}%
-          </Typography>
-          <Tooltip title="Reset view">
-            <IconButton size="small" onClick={handleReset}>
-              <CenterFocusStrongIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Box sx={{ width: 1, height: 20, borderLeft: 1, borderColor: 'divider', mx: 0.5 }} />
-          <Tooltip title={scrollZoomEnabled ? 'Scroll zooms diagram (right-click to toggle)' : 'Scroll moves page (right-click to toggle)'}>
-            <Chip
-              icon={<MouseIcon sx={{ fontSize: 16 }} />}
-              label={scrollZoomEnabled ? 'Zoom' : 'Scroll'}
-              size="small"
-              color={scrollZoomEnabled ? 'primary' : 'default'}
-              onClick={() => setGlobalScrollZoom(!scrollZoomEnabled)}
-              sx={{ 
-                height: 24, 
-                cursor: 'pointer',
-                '& .MuiChip-label': { px: 1, fontSize: '0.7rem' }
+          
+          <Box
+            onContextMenu={(e) => {
+              e.preventDefault();
+              handleToggleScrollZoom();
+            }}
+            sx={{ width: '100%', height: '100%' }}
+          >
+            <TransformComponent
+              wrapperStyle={{
+                width: '100%',
+                height: '100%',
+                cursor: 'grab',
               }}
-            />
-          </Tooltip>
-        </Stack>
-      )}
-
-      {/* Fullscreen button */}
-      {!loading && !error && (
-        <Tooltip title="View fullscreen">
-          <IconButton
-            onClick={handleFullscreen}
+              contentStyle={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px',
+              }}
+            >
+              {/* The SVG from mermaid - rendered untouched */}
+              <Box
+                sx={{
+                  '& svg': {
+                    display: 'block',
+                    // Don't constrain dimensions - let mermaid decide
+                    maxWidth: 'none',
+                    height: 'auto',
+                  },
+                }}
+                dangerouslySetInnerHTML={{ __html: svgContent }}
+              />
+            </TransformComponent>
+          </Box>
+          
+          {/* Instructions hint */}
+          <Typography
+            variant="caption"
             sx={{
               position: 'absolute',
-              top: 8,
-              right: 8,
-              zIndex: 10,
-              bgcolor: 'background.default',
-              '&:hover': { bgcolor: 'action.hover' },
+              bottom: 8,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              opacity: 0.5,
+              pointerEvents: 'none',
+              bgcolor: 'rgba(0,0,0,0.6)',
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 1,
+              color: 'grey.400',
+              fontSize: '0.7rem',
             }}
-            size="small"
           >
-            <FullscreenIcon />
-          </IconButton>
-        </Tooltip>
-      )}
-
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-          <CircularProgress />
-        </Box>
-      )}
-      {error && (
-        <Box sx={{ p: 2, color: 'error.main' }}>
-          {error}
-        </Box>
-      )}
-      
-      {/* Pannable/zoomable container */}
-      <Box
-        ref={zoomContainerRef}
-        sx={{
-          display: loading || error ? 'none' : 'block',
-          overflow: 'hidden',
-          cursor: interactive ? (isDragging ? 'grabbing' : 'grab') : 'default',
-          minHeight: 300,
-          p: 2,
-          // Visual indicator when scroll zoom is disabled
-          ...(interactive && !scrollZoomEnabled && {
-            outline: '2px dashed',
-            outlineColor: 'warning.main',
-            outlineOffset: -4,
-          }),
-        }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
-        onContextMenu={handleContextMenu}
-      >
-        <Box
-          ref={elementRef}
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            transform: interactive ? `translate(${position.x}px, ${position.y}px) scale(${scale})` : 'none',
-            transformOrigin: 'center center',
-            transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-            '& svg': {
-              maxWidth: interactive ? 'none' : '100%',
-              height: 'auto',
-            },
-          }}
-          dangerouslySetInnerHTML={{ __html: svgContent }}
-        />
-      </Box>
-      
-      {/* Instructions hint */}
-      {interactive && !loading && !error && (
-        <Typography
-          variant="caption"
-          sx={{
-            position: 'absolute',
-            bottom: 8,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            opacity: 0.6,
-            pointerEvents: 'none',
-            bgcolor: 'background.default',
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 1,
-          }}
-        >
-          Drag to pan • {scrollZoomEnabled ? 'Scroll to zoom' : 'Scroll disabled'} • Right-click to toggle
-        </Typography>
+            Drag to pan • {scrollZoomEnabled ? 'Scroll to zoom' : 'Scroll disabled'} • Right-click to toggle • Double-click to reset
+          </Typography>
+        </TransformWrapper>
       )}
     </Box>
   );
