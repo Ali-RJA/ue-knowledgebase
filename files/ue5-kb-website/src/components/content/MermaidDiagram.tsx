@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback, useId } from 'react';
-import { Box, IconButton, Tooltip, CircularProgress, Slider, Stack, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip, CircularProgress, Slider, Stack, Typography, Chip } from '@mui/material';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
+import MouseIcon from '@mui/icons-material/Mouse';
 import mermaid from 'mermaid';
 
 interface MermaidDiagramProps {
@@ -14,6 +15,20 @@ interface MermaidDiagramProps {
 
 // Counter for unique IDs across renders
 let mermaidIdCounter = 0;
+
+// Global scroll zoom state - shared across all diagram instances
+let globalScrollZoomEnabled = true;
+const scrollZoomListeners = new Set<(enabled: boolean) => void>();
+
+const setGlobalScrollZoom = (enabled: boolean) => {
+  globalScrollZoomEnabled = enabled;
+  scrollZoomListeners.forEach(listener => listener(enabled));
+};
+
+const subscribeToScrollZoom = (listener: (enabled: boolean) => void) => {
+  scrollZoomListeners.add(listener);
+  return () => scrollZoomListeners.delete(listener);
+};
 
 export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -28,6 +43,15 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  // Scroll mode toggle (true = zoom, false = page scroll) - synced globally
+  const [scrollZoomEnabled, setScrollZoomEnabled] = useState(globalScrollZoomEnabled);
+
+  // Subscribe to global scroll zoom changes
+  useEffect(() => {
+    const unsubscribe = subscribeToScrollZoom(setScrollZoomEnabled);
+    return () => { unsubscribe(); };
+  }, []);
 
   // Initialize mermaid once
   useEffect(() => {
@@ -115,6 +139,9 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
     if (!container || !interactive) return;
 
     const handleWheel = (e: WheelEvent) => {
+      // Only intercept scroll if zoom mode is enabled
+      if (!scrollZoomEnabled) return;
+      
       e.preventDefault();
       e.stopPropagation();
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -127,7 +154,14 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
     return () => {
       container.removeEventListener('wheel', handleWheel);
     };
-  }, [interactive]);
+  }, [interactive, scrollZoomEnabled]);
+
+  // Right-click toggle for scroll mode - updates globally
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (!interactive) return;
+    e.preventDefault();
+    setGlobalScrollZoom(!scrollZoomEnabled);
+  }, [interactive, scrollZoomEnabled]);
 
   // Pan handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -217,6 +251,21 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
               <CenterFocusStrongIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+          <Box sx={{ width: 1, height: 20, borderLeft: 1, borderColor: 'divider', mx: 0.5 }} />
+          <Tooltip title={scrollZoomEnabled ? 'Scroll zooms diagram (right-click to toggle)' : 'Scroll moves page (right-click to toggle)'}>
+            <Chip
+              icon={<MouseIcon sx={{ fontSize: 16 }} />}
+              label={scrollZoomEnabled ? 'Zoom' : 'Scroll'}
+              size="small"
+              color={scrollZoomEnabled ? 'primary' : 'default'}
+              onClick={() => setGlobalScrollZoom(!scrollZoomEnabled)}
+              sx={{ 
+                height: 24, 
+                cursor: 'pointer',
+                '& .MuiChip-label': { px: 1, fontSize: '0.7rem' }
+              }}
+            />
+          </Tooltip>
         </Stack>
       )}
 
@@ -260,11 +309,18 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
           cursor: interactive ? (isDragging ? 'grabbing' : 'grab') : 'default',
           minHeight: 300,
           p: 2,
+          // Visual indicator when scroll zoom is disabled
+          ...(interactive && !scrollZoomEnabled && {
+            outline: '2px dashed',
+            outlineColor: 'warning.main',
+            outlineOffset: -4,
+          }),
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onContextMenu={handleContextMenu}
       >
         <Box
           ref={elementRef}
@@ -292,11 +348,15 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
             bottom: 8,
             left: '50%',
             transform: 'translateX(-50%)',
-            opacity: 0.5,
+            opacity: 0.6,
             pointerEvents: 'none',
+            bgcolor: 'background.default',
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 1,
           }}
         >
-          Drag to pan • Scroll to zoom
+          Drag to pan • {scrollZoomEnabled ? 'Scroll to zoom' : 'Scroll disabled'} • Right-click to toggle
         </Typography>
       )}
     </Box>

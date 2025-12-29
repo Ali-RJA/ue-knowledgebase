@@ -917,18 +917,21 @@ flowchart LR
 *   **The .uasset file:** The actual raw animation data imported from Blender/Maya.
 *   **The Montage:** The "wrapper" that tells UE5 how fast to play the animation and when to trigger hit sounds/damage.
 
-**Pro-Tip:** In your project, putting the `UAnimMontage*` in the `UWeaponDataAsset` is the cleanest way. It allows you to create a "Spear" later just by making a new Data Asset and plugging in a "Spear_Swing" montage.flowchart TD
-subgraph DataAsset["<b>Weapon Data Asset (The Organizer)</b>"]
-Stats["• Base Damage: 50<br/>• Crit Chance: 10%"]
-Anims["• Stance: AS_Katana_Idle<br/>• Attack: AM_Katana_Combo"]
-Visuals["• Mesh: SK_Katana<br/>• Trail FX: NS_SwordTrail"]
-Audio["• Impact Sound: SFX_Blade_Hit"]
-end
+**Pro-Tip:** In your project, putting the `UAnimMontage*` in the `UWeaponDataAsset` is the cleanest way. It allows you to create a "Spear" later just by making a new Data Asset and plugging in a "Spear_Swing" montage.
 
-    subgraph Readers["<b>The Readers (Logic)</b>"]
-        Combat["<b>Combat Component</b><br/>Reads Stats & Attacks"]
-        AnimBP["<b>Animation Blueprint</b><br/>Reads Stance"]
-        Equip["<b>Equipment Component</b><br/>Reads Mesh & FX"]
+```mermaid
+flowchart TD
+    subgraph DataAsset["Weapon Data Asset (The Organizer)"]
+        Stats["• Base Damage: 50<br/>• Crit Chance: 10%"]
+        Anims["• Stance: AS_Katana_Idle<br/>• Attack: AM_Katana_Combo"]
+        Visuals["• Mesh: SK_Katana<br/>• Trail FX: NS_SwordTrail"]
+        Audio["• Impact Sound: SFX_Blade_Hit"]
+    end
+
+    subgraph Readers["The Readers (Logic)"]
+        Combat["Combat Component<br/>Reads Stats & Attacks"]
+        AnimBP["Animation Blueprint<br/>Reads Stance"]
+        Equip["Equipment Component<br/>Reads Mesh & FX"]
     end
 
     DataAsset --> Combat
@@ -939,6 +942,7 @@ end
     style Combat fill:#22543d,stroke:#276749,color:#fff
     style AnimBP fill:#1a365d,stroke:#2c5282,color:#fff
     style Equip fill:#742a2a,stroke:#9b2c2c,color:#fff
+```
 
 ---
 

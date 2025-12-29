@@ -14,104 +14,82 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import { MermaidDiagram } from '../components/content/MermaidDiagram';
 import { CodeBlock } from '../components/content/CodeBlock';
 
-// The massive mermaid diagram for the combat architecture
+// The combat architecture diagram - simplified for readability
 const COMBAT_ARCHITECTURE_DIAGRAM = `flowchart TB
-    direction TB
-
-    subgraph LAYER0["📁 LAYER 0: ASSET DOMAIN"]
-        direction TB
-        subgraph MONTAGE["UAnimMontage Asset"]
-            MONTAGE_DEF["UAnimMontage<br/>• Composite animation<br/>• Contains notify tracks"]
-            NOTIFY_TRACK["Notify Track<br/>Frame 0 ══ Frame N"]
-            MONTAGE_DEF --> NOTIFY_TRACK
-        end
-        subgraph NOTIFY_DEF["UAnimNotify Subclass"]
-            NOTIFY_CLASS["UAnimNotify_OpenHitWindow<br/>• DamageMultiplier<br/>• DamageType<br/>• SocketName"]
-        end
-        NOTIFY_TRACK -->|"references"| NOTIFY_CLASS
+    subgraph L0["📁 LAYER 0: ASSET DOMAIN"]
+        direction LR
+        M["UAnimMontage"] --> NT["Notify Track"]
+        NT --> NC["AnimNotify_OpenHitWindow"]
     end
 
-    subgraph LAYER1["🎬 LAYER 1: ANIMATION RUNTIME"]
-        direction TB
-        subgraph ANIM_INST["UAnimInstance"]
-            ANIM_STATE["Animation State Machine<br/>• Processes montage<br/>• Detects notify triggers"]
-            MONTAGE_INST["FAnimMontageInstance<br/>Position, PlayRate"]
-            ANIM_STATE --> MONTAGE_INST
-        end
-        subgraph NOTIFY_EXEC["Notify Execution"]
-            NOTIFY_PARAMS["Parameters Received<br/>MeshComp, Animation, Ref"]
-            SKEL_MESH["USkeletalMeshComponent<br/>GetOwner → AActor*"]
-            NOTIFY_PARAMS --> SKEL_MESH
-        end
-        MONTAGE_INST -->|"frame N reached"| NOTIFY_PARAMS
+    subgraph L1["🎬 LAYER 1: ANIMATION RUNTIME"]
+        direction LR
+        AI["UAnimInstance"] --> MI["MontageInstance"]
+        MI --> NE["Notify::Execute"]
+        NE --> SM["SkeletalMesh→GetOwner"]
     end
 
-    subgraph LAYER2["⏱️ LAYER 2: TIMING GATEKEEPER"]
-        direction TB
-        subgraph HITWINDOW["UHitWindowComponent"]
-            DELEGATE_DECL["Delegate Declaration<br/>DECLARE_MULTICAST_DELEGATE"]
-            DELEGATE_INST["FOnAttackWindow Instance"]
-            OPEN_METHOD["void OpenWindow()<br/>OnAttackWindow.Broadcast()"]
-            DELEGATE_DECL --> DELEGATE_INST --> OPEN_METHOD
-        end
+    subgraph L2["⏱️ LAYER 2: HIT WINDOW"]
+        direction LR
+        HW["UHitWindowComponent"] --> DEL["FOnAttackWindow"]
+        DEL --> BC["Broadcast"]
     end
 
-    subgraph LAYER3["🎮 LAYER 3: ACTOR COORDINATOR"]
-        direction TB
-        subgraph BEGINPLAY["BeginPlay Setup"]
-            COMP_LOOKUP["FindComponentByClass"]
-            BIND_DELEGATE["OnAttackWindow.AddUObject"]
-            COMP_LOOKUP --> BIND_DELEGATE
-        end
-        subgraph HANDLE_ATTACK["HandleAttackWindow"]
-            QUERY_VICTIMS["QueryVictims()<br/>SweepMultiByChannel"]
-            LOOP["for AActor* Victim"]
-            QUERY_VICTIMS --> LOOP
-        end
+    subgraph L3["🎮 LAYER 3: CHARACTER"]
+        direction LR
+        BP["BeginPlay: Bind"] --> HA["HandleAttackWindow"]
+        HA --> QV["QueryVictims"]
     end
 
-    subgraph LAYER4["🌍 LAYER 4: PHYSICS QUERY"]
-        direction TB
-        SWEEP_CALL["GetWorld→SweepMultiByChannel<br/>OutHits, Start, End, Shape"]
-        HITRESULT["FHitResult<br/>ImpactPoint, GetActor()"]
-        SWEEP_CALL --> HITRESULT
+    subgraph L4["🌍 LAYER 4: PHYSICS"]
+        direction LR
+        SW["SweepMultiByChannel"] --> HR["FHitResult[]"]
     end
 
-    subgraph LAYER5["❤️ LAYER 5: STATE MANAGEMENT"]
-        direction TB
-        HEALTH_COMP["UHealthComponent<br/>Health, MaxHealth"]
-        APPLY_DMG["ApplyDamage()<br/>Clamp & Broadcast"]
-        HEALTH_COMP --> APPLY_DMG
+    subgraph L5["❤️ LAYER 5: HEALTH"]
+        direction LR
+        HC["UHealthComponent"] --> AD["ApplyDamage"]
+        AD --> BD["Broadcast Events"]
     end
 
-    subgraph LAYER6["⚙️ LAYER 6: NATIVE RESPONDERS"]
-        HIT_REACT["Hit Reactions<br/>Stagger, Knockback"]
-        COMBO_SYS["Combo System<br/>Next attack validation"]
+    subgraph L6["⚙️ LAYER 6: C++ SYSTEMS"]
+        direction LR
+        CM["ComboMeter"] ~~~ AG["AggroManager"]
+        AG ~~~ AR["ArmorComponent"]
     end
 
-    subgraph LAYER7["🎨 LAYER 7: COSMETIC RESPONDERS"]
-        VFX["VFX<br/>Niagara, particles"]
-        SFX["SFX<br/>Hit sounds"]
-        UI["UI Updates<br/>Damage numbers"]
+    subgraph L7["🎨 LAYER 7: COSMETICS"]
+        direction LR
+        VFX["Niagara VFX"] ~~~ SFX["Sound FX"]
+        SFX ~~~ UI["Damage Numbers"]
     end
 
-    %% Connections between layers
-    LAYER0 --> LAYER1
-    SKEL_MESH --> HITWINDOW
-    OPEN_METHOD --> BIND_DELEGATE
-    LOOP --> LAYER4
-    HITRESULT --> LAYER5
-    APPLY_DMG --> LAYER6
-    APPLY_DMG --> LAYER7
+    L0 ==>|"Montage plays"| L1
+    L1 ==>|"Notify fires"| L2
+    L2 ==>|"Signal sent"| L3
+    L3 ==>|"Sweep trace"| L4
+    L4 ==>|"Hits found"| L3
+    L3 ==>|"Apply damage"| L5
+    L5 ==>|"OnDamagedNative"| L6
+    L5 ==>|"OnDamagedFX"| L7
 
-    style LAYER0 fill:#2d1b4e,stroke:#9b59b6
-    style LAYER1 fill:#1a3a5c,stroke:#3498db
-    style LAYER2 fill:#3d2a0f,stroke:#f39c12
-    style LAYER3 fill:#1a3d2e,stroke:#27ae60
-    style LAYER4 fill:#3d1a1a,stroke:#e74c3c
-    style LAYER5 fill:#3d1a3d,stroke:#e91e8b
-    style LAYER6 fill:#1a3d3d,stroke:#00bcd4
-    style LAYER7 fill:#2d3d1a,stroke:#8bc34a`;
+    classDef layer0 fill:#2d1b4e,stroke:#9b59b6,stroke-width:2px,color:#fff
+    classDef layer1 fill:#1a3a5c,stroke:#3498db,stroke-width:2px,color:#fff
+    classDef layer2 fill:#4a3000,stroke:#f39c12,stroke-width:2px,color:#fff
+    classDef layer3 fill:#1e4d2b,stroke:#27ae60,stroke-width:2px,color:#fff
+    classDef layer4 fill:#3d1f1f,stroke:#e74c3c,stroke-width:2px,color:#fff
+    classDef layer5 fill:#4a1942,stroke:#e91e8b,stroke-width:2px,color:#fff
+    classDef layer6 fill:#0d3d4a,stroke:#00bcd4,stroke-width:2px,color:#fff
+    classDef layer7 fill:#2e4a1e,stroke:#8bc34a,stroke-width:2px,color:#fff
+
+    class L0 layer0
+    class L1 layer1
+    class L2 layer2
+    class L3 layer3
+    class L4 layer4
+    class L5 layer5
+    class L6 layer6
+    class L7 layer7`;
 
 // Reference code cards data
 const REFERENCE_CARDS = {
@@ -696,22 +674,30 @@ const RefCard = ({ title, filePath, code, color }: RefCardProps) => (
   <Paper
     elevation={0}
     sx={{
-      bgcolor: 'rgba(0,0,0,0.3)',
+      bgcolor: 'rgba(0,0,0,0.4)',
       borderRadius: 2,
       borderLeft: 4,
       borderColor: color,
       overflow: 'hidden',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: `0 4px 20px ${color}30`,
+      },
     }}
   >
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ color, fontWeight: 600, mb: 0.5 }}>
+    <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <Typography variant="subtitle1" sx={{ color, fontWeight: 700, mb: 0.5, lineHeight: 1.3 }}>
         {title}
       </Typography>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
+      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', opacity: 0.8 }}>
         📍 {filePath}
       </Typography>
     </Box>
-    <Box sx={{ px: 2, pb: 2 }}>
+    <Box sx={{ p: 2, flexGrow: 1 }}>
       <CodeBlock code={code} language="cpp" />
     </Box>
   </Paper>
@@ -727,28 +713,57 @@ interface FlowStepCardProps {
 }
 
 const FlowStepCard = ({ step, title, icon, filePath, code, color }: FlowStepCardProps) => (
-  <Paper
-    elevation={0}
-    sx={{
-      bgcolor: 'rgba(0,0,0,0.3)',
-      borderRadius: 2,
-      borderLeft: 6,
-      borderColor: color,
-      overflow: 'hidden',
-    }}
-  >
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" sx={{ color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-        {icon} Step {step}: {title}
-      </Typography>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
-        📍 {filePath}
-      </Typography>
+  <Box sx={{ position: 'relative' }}>
+    {/* Step number badge */}
+    <Box
+      sx={{
+        position: 'absolute',
+        left: -12,
+        top: 16,
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        bgcolor: color,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 700,
+        fontSize: '0.9rem',
+        color: '#fff',
+        boxShadow: `0 2px 8px ${color}60`,
+        zIndex: 1,
+      }}
+    >
+      {step}
     </Box>
-    <Box sx={{ px: 2, pb: 2 }}>
-      <CodeBlock code={code} language="cpp" />
-    </Box>
-  </Paper>
+    <Paper
+      elevation={0}
+      sx={{
+        bgcolor: 'rgba(0,0,0,0.4)',
+        borderRadius: 2,
+        borderLeft: 4,
+        borderColor: color,
+        overflow: 'hidden',
+        ml: 2,
+        transition: 'box-shadow 0.2s ease',
+        '&:hover': {
+          boxShadow: `0 4px 20px ${color}20`,
+        },
+      }}
+    >
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: `${color}10` }}>
+        <Typography variant="h6" sx={{ color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {icon} {title}
+        </Typography>
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace', opacity: 0.8 }}>
+          📍 {filePath}
+        </Typography>
+      </Box>
+      <Box sx={{ p: 2 }}>
+        <CodeBlock code={code} language="cpp" />
+      </Box>
+    </Paper>
+  </Box>
 );
 
 export const AnimNotifyArchitecturePage = () => {
@@ -894,10 +909,26 @@ export const AnimNotifyArchitecturePage = () => {
           Each step maps to layers in the diagram above.
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {CODE_FLOW_STEPS.map((flowStep) => (
-            <FlowStepCard key={flowStep.step} {...flowStep} />
-          ))}
+        {/* Flow timeline */}
+        <Box sx={{ position: 'relative', pl: 3 }}>
+          {/* Vertical connecting line */}
+          <Box
+            sx={{
+              position: 'absolute',
+              left: 8,
+              top: 24,
+              bottom: 24,
+              width: 2,
+              bgcolor: 'divider',
+              borderRadius: 1,
+            }}
+          />
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {CODE_FLOW_STEPS.map((flowStep) => (
+              <FlowStepCard key={flowStep.step} {...flowStep} />
+            ))}
+          </Box>
         </Box>
       </Paper>
     </Box>

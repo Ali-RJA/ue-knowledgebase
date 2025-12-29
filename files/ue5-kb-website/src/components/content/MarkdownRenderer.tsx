@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
 import { Box, Typography, Link, Divider } from '@mui/material';
 import { CodeBlock } from './CodeBlock';
 import { MermaidDiagram } from './MermaidDiagram';
@@ -14,6 +15,7 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
   return (
     <Box sx={{ '& > *:first-of-type': { mt: 0 } }}>
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight, rehypeRaw]}
         components={{
           h1: ({ children }) => (
@@ -109,24 +111,74 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
           ),
           hr: () => <Divider sx={{ my: 3 }} />,
           table: ({ children }) => (
-            <Box sx={{ overflowX: 'auto', my: 2 }}>
+            <Box 
+              sx={{ 
+                overflowX: 'auto', 
+                my: 3,
+                borderRadius: 2,
+                border: 1,
+                borderColor: 'divider',
+                bgcolor: 'background.paper',
+              }}
+            >
               <Box
                 component="table"
                 sx={{
                   width: '100%',
-                  borderCollapse: 'collapse',
+                  borderCollapse: 'separate',
+                  borderSpacing: 0,
+                  '& thead': {
+                    bgcolor: 'rgba(56, 189, 248, 0.08)',
+                  },
                   '& th': {
-                    bgcolor: 'action.hover',
                     p: 1.5,
                     textAlign: 'left',
-                    borderBottom: 2,
-                    borderColor: 'divider',
                     fontWeight: 600,
+                    fontSize: '0.875rem',
+                    color: 'primary.main',
+                    borderBottom: 2,
+                    borderColor: 'primary.main',
+                    whiteSpace: 'nowrap',
+                    '&:first-of-type': {
+                      borderTopLeftRadius: 8,
+                    },
+                    '&:last-of-type': {
+                      borderTopRightRadius: 8,
+                    },
                   },
                   '& td': {
                     p: 1.5,
                     borderBottom: 1,
                     borderColor: 'divider',
+                    fontSize: '0.875rem',
+                    verticalAlign: 'top',
+                  },
+                  '& tbody tr': {
+                    transition: 'background-color 0.15s ease',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                    '&:nth-of-type(even)': {
+                      bgcolor: 'rgba(255, 255, 255, 0.02)',
+                    },
+                  },
+                  '& tbody tr:last-of-type td': {
+                    borderBottom: 'none',
+                    '&:first-of-type': {
+                      borderBottomLeftRadius: 8,
+                    },
+                    '&:last-of-type': {
+                      borderBottomRightRadius: 8,
+                    },
+                  },
+                  '& code': {
+                    bgcolor: 'rgba(56, 189, 248, 0.15)',
+                    color: 'primary.light',
+                    px: 0.75,
+                    py: 0.25,
+                    borderRadius: 0.5,
+                    fontSize: '0.8rem',
+                    fontFamily: 'monospace',
                   },
                 }}
               >
