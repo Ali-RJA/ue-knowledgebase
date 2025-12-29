@@ -389,7 +389,8 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                padding: '40px',
+                // Large padding to allow panning beyond diagram edges
+                padding: '50vh 50vw',
               }}
             >
               {/* The SVG from mermaid - rendered untouched */}
