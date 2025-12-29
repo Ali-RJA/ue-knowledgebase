@@ -5,8 +5,15 @@ import {
   Breadcrumbs,
   Link,
   Chip,
+  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { getRelatedContent, legoPieces } from '../data/content-index';
 import type { LegoPiece } from '../types/content';
 import { CodeBlock } from '../components/content/CodeBlock';
@@ -88,14 +95,122 @@ export const LegoPieceDetailPage = () => {
       </Box>
 
       {/* Explanation - full width */}
-      <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2 }}>
+      <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2, mb: 4 }}>
         <Typography variant="h5" component="h2" fontWeight={600} gutterBottom>
-          Explanation
+          Deep Explanation
         </Typography>
-        <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
-          {piece.explanation}
-        </Typography>
+        <Box
+          sx={{
+            '& h3': {
+              fontSize: '1.25rem',
+              fontWeight: 600,
+              mt: 2,
+              mb: 1,
+              color: 'primary.main',
+            },
+            '& h4': {
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              mt: 2,
+              mb: 1,
+              color: 'text.primary',
+            },
+            '& p': {
+              mb: 1.5,
+              lineHeight: 1.8,
+              color: 'text.secondary',
+            },
+            '& ul': {
+              pl: 2,
+              mb: 1.5,
+            },
+            '& li': {
+              mb: 0.5,
+              color: 'text.secondary',
+            },
+            '& strong': {
+              color: 'text.primary',
+              fontWeight: 600,
+            },
+            '& code': {
+              bgcolor: 'action.hover',
+              px: 0.75,
+              py: 0.25,
+              borderRadius: 0.5,
+              fontFamily: 'monospace',
+              fontSize: '0.9em',
+            },
+          }}
+          dangerouslySetInnerHTML={{ __html: piece.explanation }}
+        />
       </Box>
+
+      {/* Key Concepts and Best Practices - side by side */}
+      {(piece.concepts?.length > 0 || piece.practices?.length > 0) && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+          {/* Key Concepts */}
+          {piece.concepts?.length > 0 && (
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                minWidth: 280,
+                p: 3,
+                bgcolor: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid',
+                borderColor: 'rgba(56, 189, 248, 0.2)',
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 2, color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LightbulbIcon fontSize="small" />
+                Key Concepts
+              </Typography>
+              <List dense disablePadding>
+                {piece.concepts.map((concept, index) => (
+                  <ListItem key={index} disablePadding sx={{ mb: 1 }}>
+                    <ListItemIcon sx={{ minWidth: 28 }}>
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'primary.main' }} />
+                    </ListItemIcon>
+                    <ListItemText primary={concept} primaryTypographyProps={{ fontSize: '0.95rem' }} />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
+
+          {/* Best Practices */}
+          {piece.practices?.length > 0 && (
+            <Paper
+              elevation={0}
+              sx={{
+                flex: 1,
+                minWidth: 280,
+                p: 3,
+                bgcolor: 'rgba(74, 222, 128, 0.08)',
+                border: '1px solid',
+                borderColor: 'rgba(74, 222, 128, 0.2)',
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6" fontWeight={600} sx={{ mb: 2, color: 'success.main', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CheckCircleIcon fontSize="small" />
+                Best Practices
+              </Typography>
+              <List dense disablePadding>
+                {piece.practices.map((practice, index) => (
+                  <ListItem key={index} disablePadding sx={{ mb: 1 }}>
+                    <ListItemIcon sx={{ minWidth: 28 }}>
+                      <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                    </ListItemIcon>
+                    <ListItemText primary={practice} primaryTypographyProps={{ fontSize: '0.95rem' }} />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
+        </Box>
+      )}
     </Box>
   );
 };

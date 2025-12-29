@@ -106,12 +106,27 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
     setScale(value as number);
   }, []);
 
-  // Mouse wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (!interactive) return;
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setScale((s) => Math.max(0.25, Math.min(4, s * delta)));
+  // Ref for the zoomable container to attach native wheel listener
+  const zoomContainerRef = useRef<HTMLDivElement>(null);
+
+  // Native wheel event listener to properly prevent scroll
+  useEffect(() => {
+    const container = zoomContainerRef.current;
+    if (!container || !interactive) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setScale((s) => Math.max(0.25, Math.min(4, s * delta)));
+    };
+
+    // Use passive: false to allow preventDefault
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+    };
   }, [interactive]);
 
   // Pan handlers
@@ -238,6 +253,7 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
       
       {/* Pannable/zoomable container */}
       <Box
+        ref={zoomContainerRef}
         sx={{
           display: loading || error ? 'none' : 'block',
           overflow: 'hidden',
@@ -245,7 +261,6 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
           minHeight: 300,
           p: 2,
         }}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

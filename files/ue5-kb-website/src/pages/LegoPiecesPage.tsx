@@ -5,11 +5,8 @@ import {
   Grid,
   Chip,
   InputBase,
-  Button,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { ContentCard } from '../components/features/ContentCard';
 import { legoPieces } from '../data/content-index';
 
@@ -23,7 +20,6 @@ const pieceTypeData = (() => {
 })();
 
 export const LegoPiecesPage = () => {
-  const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -49,32 +45,22 @@ export const LegoPiecesPage = () => {
     <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3, width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-          <Box>
-            <Typography 
-              variant="h3" 
-              component="h1" 
-              fontWeight={800}
-              sx={{
-                background: 'linear-gradient(90deg, #38bdf8, #a78bfa)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              🧱 Lego Pieces
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Reusable C++ code snippets and patterns for Unreal Engine 5 development.
-            </Typography>
-          </Box>
-          <Button
-            variant="outlined"
-            endIcon={<OpenInNewIcon />}
-            onClick={() => navigate('/collection/cpp-lego-pieces')}
-            sx={{ flexShrink: 0 }}
+        <Box sx={{ mb: 2 }}>
+          <Typography 
+            variant="h3" 
+            component="h1" 
+            fontWeight={800}
+            sx={{
+              background: 'linear-gradient(90deg, #38bdf8, #a78bfa)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
           >
-            Full Interactive Library (100+)
-          </Button>
+            🧱 C++ Lego Pieces
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {legoPieces.length} reusable C++ code snippets and patterns for Unreal Engine 5 development.
+          </Typography>
         </Box>
 
         {/* Search Bar */}

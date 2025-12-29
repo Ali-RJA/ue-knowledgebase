@@ -23,8 +23,10 @@ export interface LegoPiece extends BaseContent {
   type: 'lego-piece';
   pieceType: string; // 'Component', 'Utility', 'Pattern', etc.
   codeSnippet: string;
-  explanation: string;
+  explanation: string; // HTML content
   diagram?: string; // Mermaid source
+  concepts: string[]; // Key concepts
+  practices: string[]; // Best practices
   relatedTopics: string[];
 }
 
