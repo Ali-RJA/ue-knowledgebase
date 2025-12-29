@@ -14,82 +14,422 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import { MermaidDiagram } from '../components/content/MermaidDiagram';
 import { CodeBlock } from '../components/content/CodeBlock';
 
-// The combat architecture diagram - simplified for readability
+// The FULL combat architecture diagram - matching the HTML reference
 const COMBAT_ARCHITECTURE_DIAGRAM = `flowchart TB
-    subgraph L0["📁 LAYER 0: ASSET DOMAIN"]
-        direction LR
-        M["UAnimMontage"] --> NT["Notify Track"]
-        NT --> NC["AnimNotify_OpenHitWindow"]
+    direction TB
+
+    %% ============================================================
+    %% LAYER 0: ASSET DOMAIN
+    %% ============================================================
+    subgraph LAYER0["📁 LAYER 0: ASSET DOMAIN ━━ Authored in Editor"]
+        direction TB
+        
+        subgraph MONTAGE["UAnimMontage Asset"]
+            direction TB
+            MONTAGE_DEF["<b>UAnimMontage</b><br/>━━━━━━━━━━━━━<br/>• Composite animation asset<br/>• Contains notify tracks<br/>• Defines sections/slots"]
+            
+            NOTIFY_TRACK["<b>Notify Track</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>Frame 0 ══════════ Frame N<br/>         ▲ notify fires"]
+            
+            MONTAGE_DEF --> NOTIFY_TRACK
+        end
+        
+        subgraph NOTIFY_DEF["UAnimNotify Subclass"]
+            NOTIFY_CLASS["<b>UAnimNotify_OpenHitWindow</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY parameters:<br/>• float DamageMultiplier<br/>• TSubclassOf DamageType<br/>• FName SocketName"]
+        end
+        
+        NOTIFY_TRACK -->|"references"| NOTIFY_CLASS
     end
 
-    subgraph L1["🎬 LAYER 1: ANIMATION RUNTIME"]
-        direction LR
-        AI["UAnimInstance"] --> MI["MontageInstance"]
-        MI --> NE["Notify::Execute"]
-        NE --> SM["SkeletalMesh→GetOwner"]
+    %% LAYER 0 NOTES
+    subgraph LAYER0_NOTES["📝 LAYER 0 NOTES ━━ Animation Assets"]
+        direction TB
+        L0_QA["<b>❓ Common Questions</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Q: Notify vs NotifyState?<br/>A: Notify = instant frame event<br/>   NotifyState = duration window<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Q: Multiple notifies same frame?<br/>A: YES but order NOT guaranteed<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Q: Branching Point vs Notify?<br/>A: BranchingPoint = frame-perfect<br/>   Notify can slip 1-2 frames"]
+        
+        L0_CODE["<b>📍 UAnimNotify_OpenHitWindow.h</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UCLASS<br/>class UAnimNotify_OpenHitWindow<br/>  : public UAnimNotify<br/>{<br/>  UPROPERTY EditAnywhere<br/>  float DamageMultiplier = 1.0f;<br/>  <br/>  virtual void Notify<br/>    USkeletalMeshComponent*,<br/>    UAnimSequenceBase*,<br/>    FAnimNotifyEventReference&<br/>  override;<br/>};"]
+        
+        L0_WARN["<b>⚠️ Gotchas</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>• Notify NOT replicated by default<br/>• Blended anims may fire 2x<br/>• Root motion can desync notify<br/>• Test with Queued notify track"]
+        
+        L0_QA ~~~ L0_CODE ~~~ L0_WARN
     end
 
-    subgraph L2["⏱️ LAYER 2: HIT WINDOW"]
-        direction LR
-        HW["UHitWindowComponent"] --> DEL["FOnAttackWindow"]
-        DEL --> BC["Broadcast"]
+    %% ============================================================
+    %% LAYER 1: ANIMATION RUNTIME
+    %% ============================================================
+    subgraph LAYER1["🎬 LAYER 1: ANIMATION RUNTIME ━━ Engine Tick"]
+        direction TB
+        
+        subgraph ANIM_INST["UAnimInstance"]
+            direction TB
+            ANIM_STATE["<b>Animation State Machine</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Processes montage playback<br/>• Detects notify triggers<br/>• Calls Notify virtual method"]
+            
+            MONTAGE_INST["<b>FAnimMontageInstance</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>float Position<br/>float PlayRate<br/>bool bPlaying<br/>int32 MontageInstanceID"]
+            
+            ANIM_STATE --> MONTAGE_INST
+        end
+        
+        subgraph NOTIFY_EXEC["Notify Execution"]
+            direction TB
+            
+            NOTIFY_PARAMS["<b>Parameters Received</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>USkeletalMeshComponent* MeshComp<br/>UAnimSequenceBase* Animation<br/>FAnimNotifyEventReference& Ref"]
+            
+            SKEL_MESH["<b>USkeletalMeshComponent</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Inheritance:<br/>USkeletalMeshComponent<br/> ↳ USkinnedMeshComponent<br/>  ↳ UMeshComponent<br/>   ↳ UPrimitiveComponent<br/>━━━━━━━━━━━━━━━━━━━━<br/>GetOwner → AActor*<br/>GetAnimInstance → UAnimInstance*"]
+            
+            NOTIFY_PARAMS --> SKEL_MESH
+        end
+        
+        MONTAGE_INST -->|"frame N reached"| NOTIFY_PARAMS
     end
 
-    subgraph L3["🎮 LAYER 3: CHARACTER"]
-        direction LR
-        BP["BeginPlay: Bind"] --> HA["HandleAttackWindow"]
-        HA --> QV["QueryVictims"]
+    %% LAYER 1 NOTES
+    subgraph LAYER1_NOTES["📝 LAYER 1 NOTES ━━ Runtime Execution"]
+        direction TB
+        L1_QA["<b>❓ Common Questions</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Q: Get owner Actor from notify?<br/>A: MeshComp→GetOwner<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Q: Notify fires twice - why?<br/>A: Animation blend, looping,<br/>   or notify in SEQ + MONTAGE<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Q: Pass custom data to notify?<br/>A: Use UPROPERTY on notify class"]
+        
+        L1_CODE["<b>📍 AnimNotify_OpenHitWindow.cpp</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>void UAnimNotify_OpenHitWindow<br/>::Notify MeshComp, Anim, Ref<br/>{<br/>  Super::Notify ...;<br/>  if !MeshComp return;<br/>  <br/>  AActor* Owner = <br/>    MeshComp→GetOwner;<br/>  if !Owner return;<br/>  <br/>  auto* HW = Owner→<br/>    FindComponentByClass<br/>      UHitWindowComponent;<br/>  if HW → HW→OpenWindow;<br/>}"]
+        
+        L1_LIFECYCLE["<b>🔄 UAnimInstance Lifecycle</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>NativeInitializeAnimation<br/>  ↓ called once on spawn<br/>NativeUpdateAnimation dt<br/>  ↓ called every frame<br/>BlueprintUpdateAnimation<br/>  ↓ BP event graph runs<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>⚠️ Thread Safety: UE5 anim<br/>runs on worker threads!<br/>Use ThreadSafe UPROPERTY"]
+        
+        L1_QA ~~~ L1_CODE ~~~ L1_LIFECYCLE
     end
 
-    subgraph L4["🌍 LAYER 4: PHYSICS"]
-        direction LR
-        SW["SweepMultiByChannel"] --> HR["FHitResult[]"]
+    %% ============================================================
+    %% DATA FLOW ANNOTATION
+    %% ============================================================
+    subgraph DATAFLOW1["📨 DATA FLOW: Notify → Component"]
+        DATA_NOTE["<b>What Crosses Boundary?</b><br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>1. MeshComp→GetOwner<br/>2. Cast to AHeroCharacter<br/>3. FindComponentByClass<br/>4. Invoke OpenWindow<br/>━━━━━━━━━━━━━━━━━━━━<br/>DATA: None - pure control flow<br/>POINTER: Raw from engine ⚠️"]
     end
 
-    subgraph L5["❤️ LAYER 5: HEALTH"]
-        direction LR
-        HC["UHealthComponent"] --> AD["ApplyDamage"]
-        AD --> BD["Broadcast Events"]
+    %% DATAFLOW NOTES
+    subgraph DATAFLOW_NOTES["📝 DATAFLOW NOTES ━━ Architecture Patterns"]
+        direction TB
+        DF_PATTERN["<b>🏗️ Signal vs Data Delegates</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>SIGNAL signal-only:<br/>DECLARE_MULTICAST_DELEGATE<br/>  FOnWindowOpened<br/>Broadcast: OnWindowOpened.Broadcast<br/>Handler queries what it needs<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>DATA-CARRYING with payload:<br/>DECLARE_MULTICAST_DELEGATE_TwoParams<br/>  FOnDamageDealt, float, AActor*<br/>Broadcast passes data directly"]
+        
+        DF_ALT["<b>🔀 Interface Alternative</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UINTERFACE MinimalAPI<br/>class UDamageable : UInterface {};<br/><br/>class IDamageable {<br/>  virtual void TakeDamage<br/>    float Amt, AActor* Src = 0;<br/>};<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Usage:<br/>if Owner→Implements UDamageable<br/>  IDamageable::Execute_TakeDamage<br/>    Owner, 35.f, this;"]
+        
+        DF_PATTERN ~~~ DF_ALT
     end
 
-    subgraph L6["⚙️ LAYER 6: C++ SYSTEMS"]
-        direction LR
-        CM["ComboMeter"] ~~~ AG["AggroManager"]
-        AG ~~~ AR["ArmorComponent"]
+    %% ============================================================
+    %% LAYER 2: TIMING GATEKEEPER
+    %% ============================================================
+    subgraph LAYER2["⏱️ LAYER 2: TIMING GATEKEEPER ━━ Signal Emitter"]
+        direction TB
+        
+        subgraph RATIONALE["💡 DESIGN RATIONALE"]
+            WHY_NAME["<b>Why UHitWindowComponent?</b><br/><b>Not USwordComponent?</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Single Responsibility:<br/>• Answers ONE question only<br/>• 'WHEN can damage occur?'<br/>• NOT what weapon or how much<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Decoupling:<br/>• Fists, swords, hammers, spells<br/>• ALL reuse same component"]
+        end
+        
+        subgraph HITWINDOW["UHitWindowComponent"]
+            direction TB
+            
+            HW_CLASS["<b>: UActorComponent</b><br/>━━━━━━━━━━━━━━━━━"]
+            
+            DELEGATE_DECL["<b>Delegate Declaration</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>DECLARE_MULTICAST_DELEGATE<br/>  FOnAttackWindow<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Signature: void<br/>Parameters: NONE"]
+            
+            DELEGATE_INST["<b>Delegate Instance</b><br/>━━━━━━━━━━━━━━━━━━━<br/>FOnAttackWindow OnAttackWindow<br/>━━━━━━━━━━━━━━━━━━━<br/>Internal: TArray FDelegate<br/> └─ InvocationList"]
+            
+            OPEN_METHOD["<b>void OpenWindow</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>UFUNCTION BlueprintCallable<br/>OnAttackWindow.Broadcast<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Order is UNDEFINED ⚠️"]
+            
+            HW_CLASS --> DELEGATE_DECL
+            DELEGATE_DECL --> DELEGATE_INST
+            DELEGATE_INST --> OPEN_METHOD
+        end
     end
 
-    subgraph L7["🎨 LAYER 7: COSMETICS"]
-        direction LR
-        VFX["Niagara VFX"] ~~~ SFX["Sound FX"]
-        SFX ~~~ UI["Damage Numbers"]
+    %% LAYER 2 NOTES
+    subgraph LAYER2_NOTES["📝 LAYER 2 NOTES ━━ Delegates Deep Dive"]
+        direction TB
+        L2_TYPES["<b>📊 Delegate Type Matrix</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Type        │BP?│Speed│UFUNC?<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Static      │ ❌ │ ⚡  │ ❌<br/>StaticMulti │ ❌ │ ⚡  │ ❌<br/>Dynamic     │ ✅ │ 🐢  │ ✅<br/>DynamicMulti│ ✅ │ 🐢  │ ✅<br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>⚡ = ~5-10ns  🐢 = ~50-100ns"]
+        
+        L2_HANDLE["<b>🔧 FDelegateHandle Cleanup</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Store handle for cleanup<br/>FDelegateHandle MyHandle;<br/><br/>void BeginPlay {<br/>  MyHandle = Delegate.AddUObject<br/>    this, &ThisClass::Handler;<br/>}<br/><br/>void EndPlay EEndPlayReason {<br/>  Delegate.Remove MyHandle;<br/>  // OR: Delegate.RemoveAll this;<br/>}"]
+        
+        L2_BIND["<b>🔗 Binding Methods</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>AddUObject: UObject member func<br/>  Stores TWeakObjectPtr internally<br/>  Auto-removes if object destroyed<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>AddRaw: Non-UObject class<br/>  NO safety checks! Manual cleanup!<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>AddLambda: Inline function<br/>  Capture by value or weak ptr!<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>AddDynamic: Dynamic delegate only<br/>  Requires UFUNCTION on handler"]
+        
+        L2_TYPES ~~~ L2_HANDLE ~~~ L2_BIND
     end
 
-    L0 ==>|"Montage plays"| L1
-    L1 ==>|"Notify fires"| L2
-    L2 ==>|"Signal sent"| L3
-    L3 ==>|"Sweep trace"| L4
-    L4 ==>|"Hits found"| L3
-    L3 ==>|"Apply damage"| L5
-    L5 ==>|"OnDamagedNative"| L6
-    L5 ==>|"OnDamagedFX"| L7
+    %% ============================================================
+    %% LAYER 3: ACTOR COORDINATOR
+    %% ============================================================
+    subgraph LAYER3["🎮 LAYER 3: ACTOR COORDINATOR ━━ Command Center"]
+        direction TB
+        
+        subgraph BEGINPLAY["BeginPlay Setup"]
+            direction TB
+            
+            COMP_LOOKUP["<b>Component Discovery</b><br/>━━━━━━━━━━━━━━━━━━━━━━<br/>HitWindow = FindComponentByClass<br/>  UHitWindowComponent<br/>━━━━━━━━━━━━━━━━━━━━<br/>Returns: raw ptr or nullptr<br/>MUST null-check ⚠️"]
+            
+            BIND_DELEGATE["<b>Delegate Binding</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>HitWindow→OnAttackWindow<br/>  .AddUObject<br/>    this,<br/>    &AHeroCharacter::HandleAttackWindow<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Stores TWeakObjectPtr + func ptr"]
+            
+            COMP_LOOKUP --> BIND_DELEGATE
+        end
+        
+        subgraph HANDLE_ATTACK["HandleAttackWindow"]
+            direction TB
+            
+            DAMAGE_DEF["<b>constexpr float Damage = 35.f</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>Compile-time constant"]
+            
+            QUERY_VICTIMS["<b>QueryVictims</b><br/>━━━━━━━━━━━━━━━━━━━<br/>Returns TArray AActor*<br/>Uses SweepMultiByChannel"]
+            
+            LOOP["<b>for AActor* Victim</b><br/>━━━━━━━━━━━━━━━━━━<br/>Range-based iteration"]
+            
+            DAMAGE_DEF --> QUERY_VICTIMS
+            QUERY_VICTIMS --> LOOP
+        end
+    end
 
+    %% LAYER 3 NOTES
+    subgraph LAYER3_NOTES["📝 LAYER 3 NOTES ━━ Character & Networking"]
+        direction TB
+        L3_NETWORK["<b>🌐 MULTIPLAYER CRITICAL</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>void HandleAttackWindow {<br/>  // ⚠️ ONLY SERVER calculates!<br/>  if !HasAuthority return;<br/>  <br/>  for AActor* Victim : QueryVictims<br/>  {<br/>    // Damage on server only<br/>    // Health replicates to clients<br/>    ApplyDamage Victim, 35.f;<br/>  }<br/>}<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Client traces are COSMETIC only"]
+        
+        L3_LIFECYCLE["<b>🔄 Init Order</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Constructor<br/>  ↓ components created here<br/>PostInitializeComponents<br/>  ↓ components ready, bind here!<br/>BeginPlay<br/>  ↓ world ready, game started<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>💡 PostInitializeComponents<br/>   is safer than BeginPlay<br/>   for component dependencies"]
+        
+        L3_ENSURE["<b>✅ Validation Patterns</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Dev assertion - crash in editor<br/>ensureMsgf HitWindow,<br/>  TEXT Requires HitWindowComponent!;<br/><br/>// Always crash if fails<br/>check HitWindow != nullptr;<br/><br/>// Log and continue<br/>if !HitWindow {<br/>  UE_LOG LogCombat, Error,<br/>    TEXT No HitWindow!;<br/>  return;<br/>}"]
+        
+        L3_NETWORK ~~~ L3_LIFECYCLE ~~~ L3_ENSURE
+    end
+
+    %% ============================================================
+    %% LAYER 4: PHYSICS QUERY
+    %% ============================================================
+    subgraph LAYER4["🌍 LAYER 4: PHYSICS QUERY ━━ World Traces"]
+        direction TB
+        
+        subgraph TRACE_CONFIG["Trace Configuration"]
+            COLL_PARAMS["<b>FCollisionQueryParams</b><br/>━━━━━━━━━━━━━━━━━━━━━━<br/>TraceTag: FName debug<br/>bTraceComplex: per-poly<br/>bReturnPhysicalMaterial: true<br/>━━━━━━━━━━━━━━━━━━━━<br/>AddIgnoredActor: self"]
+            
+            COLL_SHAPE["<b>FCollisionShape</b><br/>━━━━━━━━━━━━━━━━━━<br/>MakeSphere: radius<br/>MakeCapsule: r, hh<br/>MakeBox: half extents"]
+            
+            COLL_CHANNEL["<b>ECollisionChannel</b><br/>━━━━━━━━━━━━━━━━━━<br/>ECC_Pawn: default<br/>ECC_GameTraceChannel1:<br/>  Custom 'Attack' channel"]
+            
+            COLL_PARAMS --> COLL_SHAPE --> COLL_CHANNEL
+        end
+        
+        subgraph TRACE_EXEC["Trace Execution"]
+            SWEEP_CALL["<b>GetWorld→SweepMultiByChannel</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>TArray FHitResult& OutHits<br/>FVector Start, End<br/>FQuat Rotation<br/>ECollisionChannel Channel<br/>FCollisionShape Shape<br/>FCollisionQueryParams Params<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Returns: bool bHitSomething"]
+        end
+        
+        subgraph HITRESULT["FHitResult ━━ Key Members"]
+            direction TB
+            
+            HR_FLAGS["<b>━━ Flags ━━</b><br/>bBlockingHit: bool<br/>bStartPenetrating: bool"]
+            
+            HR_VEC["<b>━━ Spatial ━━</b><br/>ImpactPoint: FVector surface<br/>ImpactNormal: FVector dir<br/>Distance: float from start"]
+            
+            HR_REF["<b>━━ References ━━</b><br/>GetActor → AActor*<br/>GetComponent → UPrimComp*<br/>PhysMaterial → surface type<br/>BoneName → skeletal bone"]
+            
+            HR_FLAGS ~~~ HR_VEC ~~~ HR_REF
+        end
+        
+        TRACE_EXEC --> HITRESULT
+    end
+
+    %% LAYER 4 NOTES
+    subgraph LAYER4_NOTES["📝 LAYER 4 NOTES ━━ Traces & Debug"]
+        direction TB
+        L4_TYPES["<b>📊 Trace Type Decision</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>LINE TRACE ════════════><br/>• Infinitely thin, fast<br/>• Bullets, lasers, hitscan<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>SPHERE SWEEP  ●━━━━━━●<br/>• Radius gives forgiveness<br/>• Melee attacks, pickups<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>CAPSULE SWEEP ╭─╮━━━╭─╮<br/>• Character-shaped<br/>• Large weapons, cleaves"]
+        
+        L4_DEBUG["<b>🐛 Debug Visualization</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>#if !UE_BUILD_SHIPPING<br/>DrawDebugSphere GetWorld,<br/>  Start, Radius, 12,<br/>  bHit ? FColor::Green<br/>       : FColor::Red,<br/>  false, 0.5f;<br/><br/>DrawDebugLine GetWorld,<br/>  Start, End,<br/>  FColor::Yellow,<br/>  false, 0.5f, 0, 2.f;<br/>#endif<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Console: show collision"]
+        
+        L4_ASYNC["<b>⚡ Async Traces Performance</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// For heavy queries 100+<br/>FTraceHandle Handle =<br/>  GetWorld→AsyncSweepByChannel<br/>    EAsyncTraceType::Multi,<br/>    Start, End,<br/>    ECC_Attack,<br/>    Shape,<br/>    Params,<br/>    &MyTraceDelegate;<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Results arrive next frame<br/>via FTraceDelegate callback"]
+        
+        L4_TYPES ~~~ L4_DEBUG ~~~ L4_ASYNC
+    end
+
+    %% ============================================================
+    %% LAYER 5: STATE MANAGEMENT
+    %% ============================================================
+    subgraph LAYER5["❤️ LAYER 5: STATE MANAGEMENT ━━ Health Component"]
+        direction TB
+        
+        subgraph HEALTH_PROPS["State Properties"]
+            PROPS["<b>UPROPERTY EditAnywhere</b><br/>━━━━━━━━━━━━━━━━━━<br/>float Health<br/>float MaxHealth = 100.f<br/>━━━━━━━━━━━━━━━━━━<br/>UPROPERTY enables:<br/>• GC tracking<br/>• Serialization<br/>• Editor exposure"]
+        end
+        
+        subgraph DUAL_DELEGATES["Dual Delegate System"]
+            direction TB
+            
+            NATIVE_DECL["<b>━━ C++ Systems ━━</b><br/>DECLARE_MULTICAST_DELEGATE_TwoParams<br/>  FOnDamagedNative,<br/>  float Amount,<br/>  AActor* Causer<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Faster, C++ only"]
+            
+            FX_DECL["<b>━━ Blueprint ━━</b><br/>DECLARE_DYNAMIC_MULTICAST_DELEGATE<br/>  _TwoParams<br/>  FOnDamagedFX,<br/>  float, Amount,<br/>  AActor*, Causer<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Slower, BP-visible"]
+            
+            NATIVE_DECL ~~~ FX_DECL
+        end
+        
+        subgraph APPLY_DMG["ApplyDamage Method"]
+            direction TB
+            
+            CLAMP["<b>State Mutation</b><br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Health = FMath::Clamp<br/>  Health - Amount,<br/>  0.f, MaxHealth"]
+            
+            BC_NATIVE["<b>OnDamagedNative.Broadcast</b>"]
+            
+            BC_FX["<b>OnDamagedFX.Broadcast</b>"]
+            
+            DEATH["<b>if Health <= 0.f</b><br/>  OnDeath.Broadcast"]
+            
+            CLAMP --> BC_NATIVE --> BC_FX --> DEATH
+        end
+    end
+
+    %% LAYER 5 NOTES
+    subgraph LAYER5_NOTES["📝 LAYER 5 NOTES ━━ Damage System"]
+        direction TB
+        L5_DAMAGETYPE["<b>🎯 UDamageType Integration</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Custom damage types<br/>UCLASS<br/>class UFireDamageType<br/>  : public UDamageType {};<br/><br/>// Apply with type<br/>UGameplayStatics::ApplyDamage<br/>  Victim, 35.f,<br/>  InstigatorController,<br/>  DamageCauser,<br/>  UFireDamageType::StaticClass;<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Receiver checks type for<br/>resistance/immunity"]
+        
+        L5_PIPELINE["<b>🔄 Damage Pipeline</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>RAW DAMAGE 35.f<br/>      │<br/>      ▼<br/>┌─ Pre-Modifier ─┐<br/>│ Armor: 0.8x    │<br/>│ Fire Resist    │<br/>└───────┬────────┘<br/>        │ 28.f<br/>        ▼<br/>┌─ Health Comp ─┐<br/>│ Clamp/Apply   │<br/>└───────┬───────┘<br/>        │<br/>        ▼<br/>Broadcast to listeners"]
+        
+        L5_REPLICATE["<b>🌐 Network Replication</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY Replicated<br/>float Health;<br/><br/>void GetLifetimeReplicatedProps<br/>  TArray FLifetimeProperty& Out<br/>{<br/>  DOREPLIFETIME ThisClass, Health;<br/>}<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Health syncs server→clients<br/>Damage calc ONLY on server"]
+        
+        L5_DAMAGETYPE ~~~ L5_PIPELINE ~~~ L5_REPLICATE
+    end
+
+    %% ============================================================
+    %% LAYER 6: NATIVE RESPONDERS
+    %% ============================================================
+    subgraph LAYER6["⚙️ LAYER 6: NATIVE RESPONDERS ━━ C++ Systems"]
+        direction TB
+        
+        COMBO["<b>UComboMeterComponent</b><br/>━━━━━━━━━━━━━━━━━━<br/>Tracks consecutive hits<br/>Resets on timer expiry<br/>Multiplies damage/score"]
+        
+        AGGRO["<b>UAIAggroManager</b><br/>━━━━━━━━━━━━━━━━<br/>Updates threat tables<br/>Influences AI targeting"]
+        
+        STATS["<b>UAnalyticsSubsystem</b><br/>━━━━━━━━━━━━━━━━━━<br/>Records damage dealt<br/>Tracks damage sources"]
+        
+        ARMOR["<b>UArmorComponent</b><br/>━━━━━━━━━━━━━━━━<br/>Pre-processes damage<br/>Applies resistances"]
+        
+        NATIVE_BIND["<b>Binding Pattern</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>HealthComp→OnDamagedNative<br/>  .AddUObject this,<br/>  &UComboMeter::OnDamageDealt"]
+    end
+
+    %% LAYER 6 NOTES
+    subgraph LAYER6_NOTES["📝 LAYER 6 NOTES ━━ C++ Architecture"]
+        direction TB
+        L6_SUBSYSTEM["<b>🏗️ Subsystem Pattern Modern</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Better than singleton managers<br/>UCLASS<br/>class UCombatSubsystem<br/>  : public UGameInstanceSubsystem<br/>{<br/>  // Auto-created with GameInstance<br/>  // Survives level transitions<br/>  // Clean lifecycle management<br/>};<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Access anywhere:<br/>auto* Combat = GetGameInstance<br/>  →GetSubsystem UCombatSubsystem;"]
+        
+        L6_ORDER["<b>⚠️ Execution Order Problem</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Multicast delegate order<br/>is NOT guaranteed!<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>If Armor must run BEFORE Combo:<br/>1. Use ordered container<br/>2. Single orchestrator component<br/>3. Chain delegates manually<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Orchestrator pattern:<br/>void OnDamage float Amt {<br/>  Amt = Armor→Process Amt;<br/>  Combo→Record Amt;<br/>  // Explicit order<br/>}"]
+        
+        L6_GAS["<b>🆚 GAS Comparison</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>This Architecture:<br/>• Simple, direct, readable<br/>• Good for action games<br/>• You own the code<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>GameplayAbilitySystem:<br/>• More complex, more features<br/>• RPG/MOBA style games<br/>• Built-in prediction/replication<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Consider GAS if you need:<br/>• Cooldowns, costs, tags<br/>• Complex ability interactions"]
+        
+        L6_SUBSYSTEM ~~~ L6_ORDER ~~~ L6_GAS
+    end
+
+    %% ============================================================
+    %% LAYER 7: COSMETIC RESPONDERS
+    %% ============================================================
+    subgraph LAYER7["🎨 LAYER 7: COSMETIC RESPONDERS ━━ BP/Art Layer"]
+        direction TB
+        
+        VFX["<b>BP_BloodVFXSpawner</b><br/>━━━━━━━━━━━━━━━━━━<br/>SpawnSystemAtLocation<br/>Uses ImpactPoint<br/>Scales with damage"]
+        
+        SFX["<b>BP_HitSoundPlayer</b><br/>━━━━━━━━━━━━━━━━━<br/>Plays sound at location<br/>Based on PhysMaterial"]
+        
+        SHAKE["<b>BP_CameraShakeManager</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>Player cam shake<br/>Scales with damage"]
+        
+        DMGNUM["<b>WBP_DamageNumbers</b><br/>━━━━━━━━━━━━━━━━━━<br/>UI widget spawn<br/>World-space position"]
+        
+        HITREACT["<b>ABP_HitReaction</b><br/>━━━━━━━━━━━━━━━━━━<br/>Hit react montage<br/>Direction-based select"]
+        
+        BP_BIND["<b>Blueprint Binding</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY BlueprintAssignable<br/>enables 'Assign' node"]
+    end
+
+    %% LAYER 7 NOTES
+    subgraph LAYER7_NOTES["📝 LAYER 7 NOTES ━━ FX & Networking"]
+        direction TB
+        L7_MULTICAST["<b>🌐 Multicast RPC for FX</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// FX runs on ALL clients<br/>UFUNCTION NetMulticast, Unreliable<br/>void Multicast_PlayHitFX<br/>  FVector Loc, FRotator Rot;<br/><br/>void Multicast_PlayHitFX_Impl<br/>  FVector Loc, FRotator Rot<br/>{<br/>  // Runs everywhere<br/>  UNiagaraFunctionLibrary::<br/>    SpawnSystemAtLocation ...;<br/>  UGameplayStatics::<br/>    PlaySoundAtLocation ...;<br/>}<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Unreliable = OK for cosmetics"]
+        
+        L7_NIAGARA["<b>✨ Niagara UE5 Pattern</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Cascade is deprecated!<br/>UNiagaraFunctionLibrary::<br/>  SpawnSystemAtLocation<br/>    GetWorld,<br/>    BloodSplatterSystem,<br/>    ImpactPoint,<br/>    ImpactNormal.Rotation,<br/>    FVector Scale,<br/>    true,  // bAutoDestroy<br/>    true   // bAutoActivate<br/>  ;"]
+        
+        L7_CONCURRENCY["<b>🔊 Sound Concurrency</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// Prevent sound stacking<br/>USoundConcurrency* Concurrency;<br/><br/>// In asset or code:<br/>MaxCount = 3;<br/>ResolutionRule = StopFarthestThenOldest;<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Multiple hits won't create<br/>10+ overlapping sounds"]
+        
+        L7_MULTICAST ~~~ L7_NIAGARA ~~~ L7_CONCURRENCY
+    end
+
+    %% ============================================================
+    %% MEMORY REFERENCE
+    %% ============================================================
+    subgraph MEMORY["🧠 MEMORY MANAGEMENT REFERENCE"]
+        direction TB
+        
+        PTR_TYPES["<b>Pointer Types</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY T*: GC-tracked ✓<br/>TWeakObjectPtr: safe weak ✓<br/>Raw T*: NOT GC-aware ⚠️<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>if ptr: null check<br/>IsValid ptr: null + pending kill<br/>WeakPtr.IsValid: safe check"]
+        
+        DEL_SAFETY["<b>Delegate Safety</b><br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>AddUObject stores weak ptr<br/>Auto-removes on destroy<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>NEVER bind raw ptr ⚠️<br/>NEVER capture raw in lambda ⚠️"]
+    end
+
+    %% MEMORY NOTES
+    subgraph MEMORY_NOTES["📝 MEMORY NOTES ━━ Pointer Deep Dive"]
+        direction TB
+        MEM_LAMBDA["<b>🔒 Safe Lambda Capture</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// ❌ DANGEROUS - raw capture<br/>auto Bad = [this] {<br/>  this→DoThing; // may crash!<br/>};<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>// ✅ SAFE - weak capture<br/>TWeakObjectPtr WeakThis this;<br/>auto Good = [WeakThis] {<br/>  if WeakThis.IsValid<br/>    WeakThis→DoThing;<br/>};"]
+        
+        MEM_DEBUG["<b>🐛 Debug Commands</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>obj refs ClassName<br/>  Shows reference chains<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>obj list Class=ClassName<br/>  Lists all instances<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>gc.CollectGarbageEveryFrame 1<br/>  Force GC for testing"]
+        
+        MEM_LAMBDA ~~~ MEM_DEBUG
+    end
+
+    %% ============================================================
+    %% CROSS-CUTTING: DEBUGGING
+    %% ============================================================
+    subgraph DEBUG_SECTION["🐛 DEBUGGING REFERENCE"]
+        direction TB
+        
+        DEBUG_CONSOLE["<b>Console Commands</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>show collision<br/>stat game<br/>stat fps<br/>slomo 0.1<br/>p.VisualizeMovement 1"]
+        
+        DEBUG_LOG["<b>Logging</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>DECLARE_LOG_CATEGORY_EXTERN<br/>  LogCombat, Log, All<br/>━━━━━━━━━━━━━━━━━━━━━<br/>UE_LOG LogCombat, Warning,<br/>  TEXT Hit %s, *Name"]
+    end
+
+    %% ============================================================
+    %% CONNECTIONS - Main Flow
+    %% ============================================================
+    LAYER0 ==>|"Montage plays"| LAYER1
+    LAYER1 ==>|"Notify called"| DATAFLOW1
+    DATAFLOW1 ==>|"OpenWindow"| LAYER2
+    LAYER2 ==>|"Broadcast signal"| LAYER3
+    LAYER3 ==>|"SweepMulti"| LAYER4
+    LAYER4 ==>|"FHitResult array"| LAYER3
+    LAYER3 ==>|"ApplyDamage"| LAYER5
+    LAYER5 ==>|"OnDamagedNative"| LAYER6
+    LAYER5 ==>|"OnDamagedFX"| LAYER7
+
+    %% CONNECTIONS - Notes (dotted)
+    LAYER0 -.->|"📝"| LAYER0_NOTES
+    LAYER1 -.->|"📝"| LAYER1_NOTES
+    DATAFLOW1 -.->|"📝"| DATAFLOW_NOTES
+    LAYER2 -.->|"📝"| LAYER2_NOTES
+    LAYER3 -.->|"📝"| LAYER3_NOTES
+    LAYER4 -.->|"📝"| LAYER4_NOTES
+    LAYER5 -.->|"📝"| LAYER5_NOTES
+    LAYER6 -.->|"📝"| LAYER6_NOTES
+    LAYER7 -.->|"📝"| LAYER7_NOTES
+    MEMORY -.->|"📝"| MEMORY_NOTES
+
+    %% ============================================================
+    %% STYLES
+    %% ============================================================
     classDef layer0 fill:#2d1b4e,stroke:#9b59b6,stroke-width:2px,color:#fff
     classDef layer1 fill:#1a3a5c,stroke:#3498db,stroke-width:2px,color:#fff
-    classDef layer2 fill:#4a3000,stroke:#f39c12,stroke-width:2px,color:#fff
+    classDef layer2 fill:#4a3000,stroke:#f39c12,stroke-width:3px,color:#fff
     classDef layer3 fill:#1e4d2b,stroke:#27ae60,stroke-width:2px,color:#fff
     classDef layer4 fill:#3d1f1f,stroke:#e74c3c,stroke-width:2px,color:#fff
     classDef layer5 fill:#4a1942,stroke:#e91e8b,stroke-width:2px,color:#fff
-    classDef layer6 fill:#0d3d4a,stroke:#00bcd4,stroke-width:2px,color:#fff
-    classDef layer7 fill:#2e4a1e,stroke:#8bc34a,stroke-width:2px,color:#fff
+    classDef layer6 fill:#0d3d4a,stroke:#00bcd4,stroke-width:3px,color:#fff
+    classDef layer7 fill:#2e4a1e,stroke:#8bc34a,stroke-width:3px,color:#fff
+    classDef note fill:#3d3d00,stroke:#ffd93d,stroke-width:2px,color:#ffd93d
+    classDef dataflow fill:#1a1a2e,stroke:#61dafb,stroke-width:2px,color:#61dafb
+    classDef memory fill:#2a1a3a,stroke:#bb86fc,stroke-width:2px,color:#bb86fc
+    classDef notes fill:#1a1a1a,stroke:#ff9800,stroke-width:2px,stroke-dasharray:5 5,color:#ff9800
+    classDef debug fill:#2a2a00,stroke:#ffd93d,stroke-width:2px,color:#ffd93d
 
-    class L0 layer0
-    class L1 layer1
-    class L2 layer2
-    class L3 layer3
-    class L4 layer4
-    class L5 layer5
-    class L6 layer6
-    class L7 layer7`;
+    class LAYER0 layer0
+    class LAYER1 layer1
+    class LAYER2 layer2
+    class LAYER3 layer3
+    class LAYER4 layer4
+    class LAYER5 layer5
+    class LAYER6 layer6
+    class LAYER7 layer7
+    class DATAFLOW1,RATIONALE note
+    class MEMORY memory
+    class LAYER0_NOTES,LAYER1_NOTES,LAYER2_NOTES,LAYER3_NOTES,LAYER4_NOTES,LAYER5_NOTES,LAYER6_NOTES,LAYER7_NOTES,DATAFLOW_NOTES,MEMORY_NOTES notes
+    class DEBUG_SECTION debug`;
 
 // Reference code cards data
 const REFERENCE_CARDS = {
