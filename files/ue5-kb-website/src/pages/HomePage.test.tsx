@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '../test/test-utils';
+import { render, screen } from '../test/test-utils';
 import { HomePage } from './HomePage';
-import * as contentIndex from '../data/content-index';
 
 // Mock the content data
 vi.mock('../data/content-index', () => ({
@@ -154,11 +153,11 @@ describe('HomePage Grid Layout', () => {
 
   describe('Grid responsiveness is maintained', () => {
     it('should apply correct Grid size props for Featured Topics', () => {
-      const { container } = render(<HomePage />);
+      render(<HomePage />);
       
       // Find the Featured Topics section
       const featuredTopicsSection = screen.getByText('Featured Topics').closest('div')?.parentElement;
-      const gridItems = featuredTopicsSection?.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = featuredTopicsSection?.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // Grid items should have responsive classes
       gridItems?.forEach((item) => {
@@ -169,11 +168,11 @@ describe('HomePage Grid Layout', () => {
     });
 
     it('should apply correct Grid size props for Featured Diagrams', () => {
-      const { container } = render(<HomePage />);
+      render(<HomePage />);
       
       // Find the Featured Diagrams section
       const featuredDiagramsSection = screen.getByText('Featured Diagrams').closest('div')?.parentElement;
-      const gridItems = featuredDiagramsSection?.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = featuredDiagramsSection?.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // Grid items should have responsive classes
       gridItems?.forEach((item) => {
@@ -183,11 +182,11 @@ describe('HomePage Grid Layout', () => {
     });
 
     it('should apply correct Grid size props for Collections', () => {
-      const { container } = render(<HomePage />);
+      render(<HomePage />);
       
       // Find the Collections section
       const collectionsSection = screen.getByText('Special Collections').closest('div')?.parentElement;
-      const gridItems = collectionsSection?.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = collectionsSection?.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // Grid items should have responsive classes
       gridItems?.forEach((item) => {
@@ -215,9 +214,9 @@ describe('HomePage Grid Layout', () => {
     it('should display ContentCard components within Featured Topics Grid', () => {
       render(<HomePage />);
       
-      const topic1Card = screen.getByText('Test Topic 1').closest('[class*="MuiCard"]');
-      const topic2Card = screen.getByText('Test Topic 2').closest('[class*="MuiCard"]');
-      const topic3Card = screen.getByText('Test Topic 3').closest('[class*="MuiCard"]');
+      const topic1Card = screen.getByText('Test Topic 1').closest('[class*="MuiCard-root"]');
+      const topic2Card = screen.getByText('Test Topic 2').closest('[class*="MuiCard-root"]');
+      const topic3Card = screen.getByText('Test Topic 3').closest('[class*="MuiCard-root"]');
       
       expect(topic1Card).toBeInTheDocument();
       expect(topic2Card).toBeInTheDocument();
@@ -227,9 +226,9 @@ describe('HomePage Grid Layout', () => {
     it('should display ContentCard components within Featured Diagrams Grid', () => {
       render(<HomePage />);
       
-      const diagram1Card = screen.getByText('Test Diagram 1').closest('[class*="MuiCard"]');
-      const diagram2Card = screen.getByText('Test Diagram 2').closest('[class*="MuiCard"]');
-      const diagram3Card = screen.getByText('Test Diagram 3').closest('[class*="MuiCard"]');
+      const diagram1Card = screen.getByText('Test Diagram 1').closest('[class*="MuiCard-root"]');
+      const diagram2Card = screen.getByText('Test Diagram 2').closest('[class*="MuiCard-root"]');
+      const diagram3Card = screen.getByText('Test Diagram 3').closest('[class*="MuiCard-root"]');
       
       expect(diagram1Card).toBeInTheDocument();
       expect(diagram2Card).toBeInTheDocument();
@@ -239,8 +238,8 @@ describe('HomePage Grid Layout', () => {
     it('should display ContentCard components within Collections Grid', () => {
       render(<HomePage />);
       
-      const collection1Card = screen.getByText('Test Collection 1').closest('[class*="MuiCard"]');
-      const collection2Card = screen.getByText('Test Collection 2').closest('[class*="MuiCard"]');
+      const collection1Card = screen.getByText('Test Collection 1').closest('[class*="MuiCard-root"]');
+      const collection2Card = screen.getByText('Test Collection 2').closest('[class*="MuiCard-root"]');
       
       expect(collection1Card).toBeInTheDocument();
       expect(collection2Card).toBeInTheDocument();
@@ -288,7 +287,7 @@ describe('HomePage Grid Layout', () => {
     });
 
     it('should maintain spacing between Featured Topics section and Featured Diagrams section', () => {
-      const { container } = render(<HomePage />);
+      render(<HomePage />);
       
       const featuredTopicsBox = screen.getByText('Featured Topics').closest('div')?.parentElement;
       const featuredDiagramsBox = screen.getByText('Featured Diagrams').closest('div')?.parentElement;
@@ -308,12 +307,12 @@ describe('HomePage Grid Layout', () => {
       expect(gridContainers.length).toBeGreaterThan(0);
       
       // Check for Grid items
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       expect(gridItems.length).toBeGreaterThan(0);
       
       // Items should be children of containers
       gridContainers.forEach((gridContainer) => {
-        const itemsInContainer = gridContainer.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+        const itemsInContainer = gridContainer.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
         expect(itemsInContainer.length).toBeGreaterThan(0);
       });
     });

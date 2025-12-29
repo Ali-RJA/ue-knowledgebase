@@ -81,7 +81,7 @@ describe('DiagramsPage Grid Layout', () => {
     it('should render correct number of Grid items', () => {
       const { container } = render(<DiagramsPage />);
       
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // Should have 5 Grid items (one for each diagram)
       expect(gridItems.length).toBe(5);
@@ -97,10 +97,10 @@ describe('DiagramsPage Grid Layout', () => {
     });
 
     it('should render each diagram within a Grid item', () => {
-      const { container } = render(<DiagramsPage />);
+      render(<DiagramsPage />);
       
-      const diagram1Card = screen.getByText('Gameplay Ability System Flowchart').closest('[class*="MuiCard"]');
-      const diagram2Card = screen.getByText('Gameplay Ability Flowchart').closest('[class*="MuiCard"]');
+      const diagram1Card = screen.getByText('Gameplay Ability System Flowchart').closest('[class*="MuiCard-root"]');
+      const diagram2Card = screen.getByText('Gameplay Ability Flowchart').closest('[class*="MuiCard-root"]');
       
       // Each card should be within a Grid item
       expect(diagram1Card?.closest('[class*="MuiGrid-root"]')).toBeTruthy();
@@ -112,7 +112,7 @@ describe('DiagramsPage Grid Layout', () => {
     it('should apply responsive Grid size props (xs=12, sm=6, md=4)', () => {
       const { container } = render(<DiagramsPage />);
       
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // Grid items should have responsive classes for xs, sm, and md breakpoints
       gridItems.forEach((item) => {
@@ -136,11 +136,11 @@ describe('DiagramsPage Grid Layout', () => {
     it('should maintain consistent Grid structure across all items', () => {
       const { container } = render(<DiagramsPage />);
       
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // All Grid items should have consistent class structure
       const classPatterns = Array.from(gridItems).map(item => {
-        return item.className.includes('MuiGrid-root') && item.className.includes('MuiGrid-item');
+        return item.className.includes('MuiGrid-root');
       });
       
       // All items should match the pattern
@@ -205,7 +205,7 @@ describe('DiagramsPage Grid Layout', () => {
     });
 
     it('should display all diagrams within their category sections', () => {
-      const { container } = render(<DiagramsPage />);
+      render(<DiagramsPage />);
       
       // Find Core Systems section
       const coreSystemsHeading = screen.getByText('Core Systems');
@@ -250,7 +250,7 @@ describe('DiagramsPage Grid Layout', () => {
       expect(gridContainers.length).toBeGreaterThan(0);
       
       // Check for Grid items
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       expect(gridItems.length).toBe(5);
       
       // All items should be children of containers
@@ -266,7 +266,7 @@ describe('DiagramsPage Grid Layout', () => {
     it('should apply proper spacing between Grid items', () => {
       const { container } = render(<DiagramsPage />);
       
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // All Grid items should be rendered
       expect(gridItems.length).toBe(5);
@@ -299,11 +299,11 @@ describe('DiagramsPage Grid Layout', () => {
       expect(gridContainers.length).toBe(3); // 3 categories
       
       // All cards should be within Grid items
-      const cards = container.querySelectorAll('[class*="MuiCard"]');
+      const cards = container.querySelectorAll('[class*="MuiCard-root"]');
       expect(cards.length).toBe(5);
       
       cards.forEach((card) => {
-        expect(card.closest('[class*="MuiGrid-item"]')).toBeTruthy();
+        expect(card.closest('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])')).toBeTruthy();
       });
     });
   });
@@ -326,17 +326,17 @@ describe('DiagramsPage Grid Layout', () => {
       
       // Core Systems should have 3 diagrams
       const coreSystemsGrid = gridContainers[0];
-      const coreSystemsItems = coreSystemsGrid.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const coreSystemsItems = coreSystemsGrid.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       expect(coreSystemsItems.length).toBe(3);
       
       // Design should have 1 diagram
       const designGrid = gridContainers[1];
-      const designItems = designGrid.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const designItems = designGrid.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       expect(designItems.length).toBe(1);
       
       // Control should have 1 diagram
       const controlGrid = gridContainers[2];
-      const controlItems = controlGrid.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const controlItems = controlGrid.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       expect(controlItems.length).toBe(1);
     });
 
@@ -363,11 +363,11 @@ describe('DiagramsPage Grid Layout', () => {
     it('should properly integrate Grid with ContentCard components', () => {
       const { container } = render(<DiagramsPage />);
       
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       // Each Grid item should contain exactly one ContentCard
       gridItems.forEach((item) => {
-        const cards = item.querySelectorAll('[class*="MuiCard"]');
+        const cards = item.querySelectorAll('[class*="MuiCard-root"]');
         expect(cards.length).toBe(1);
       });
     });
@@ -376,13 +376,13 @@ describe('DiagramsPage Grid Layout', () => {
       const { container } = render(<DiagramsPage />);
       
       // Grid items should be rendered for each diagram
-      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"][class*="MuiGrid-item"]');
+      const gridItems = container.querySelectorAll('[class*="MuiGrid-root"]:not([class*="MuiGrid-container"])');
       
       expect(gridItems.length).toBe(5);
     });
 
     it('should integrate Box component with Grid for section organization', () => {
-      const { container } = render(<DiagramsPage />);
+      render(<DiagramsPage />);
       
       // Each category section should use Box component containing Grid
       const categoryHeadings = [
