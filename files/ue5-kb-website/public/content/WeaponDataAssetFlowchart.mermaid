@@ -1,0 +1,22 @@
+flowchart TD
+    subgraph DataAsset["<b>Weapon Data Asset (The Organizer)</b>"]
+        Stats["• Base Damage: 50<br/>• Crit Chance: 10%"]
+        Anims["• Stance: AS_Katana_Idle<br/>• Attack: AM_Katana_Combo"]
+        Visuals["• Mesh: SK_Katana<br/>• Trail FX: NS_SwordTrail"]
+        Audio["• Impact Sound: SFX_Blade_Hit"]
+    end
+
+    subgraph Readers["<b>The Readers (Logic)</b>"]
+        Combat["<b>Combat Component</b><br/>Reads Stats & Attacks"]
+        AnimBP["<b>Animation Blueprint</b><br/>Reads Stance"]
+        Equip["<b>Equipment Component</b><br/>Reads Mesh & FX"]
+    end
+
+    DataAsset --> Combat
+    DataAsset --> AnimBP
+    DataAsset --> Equip
+
+    style DataAsset fill:#44337a,stroke:#553c9a,color:#fff
+    style Combat fill:#22543d,stroke:#276749,color:#fff
+    style AnimBP fill:#1a365d,stroke:#2c5282,color:#fff
+    style Equip fill:#742a2a,stroke:#9b2c2c,color:#fff

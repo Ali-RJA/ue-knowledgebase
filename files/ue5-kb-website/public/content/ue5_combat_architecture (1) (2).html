@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UE5 Combat Architecture - Complete Reference</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0f0f23 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 30px 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #61dafb, #bb86fc, #03dac6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        
+        .legend-text {
+            font-size: 0.85rem;
+        }
+        
+        .diagram-container {
+            background: rgba(255,255,255,0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            overflow: hidden;
+            position: relative;
+            height: 70vh;
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .diagram-container:active {
+            cursor: grabbing;
+        }
+        
+        .diagram-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+        
+        .mermaid {
+            display: inline-block;
+            padding: 30px;
+        }
+        
+        .mermaid svg {
+            display: block;
+        }
+        
+        .zoom-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.7);
+            color: #61dafb;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .canvas-hint {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.7);
+            color: #888;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.8;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-btn {
+            padding: 10px 20px;
+            background: rgba(97, 218, 251, 0.1);
+            border: 1px solid #61dafb;
+            color: #61dafb;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: rgba(97, 218, 251, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .quick-ref {
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .quick-ref h2 {
+            color: #61dafb;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .ref-card {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+        
+        .ref-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .ref-card pre {
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+        
+        .ref-card code {
+            color: #03dac6;
+        }
+        
+        .ref-card.delegate { border-color: #f39c12; }
+        .ref-card.delegate h3 { color: #f39c12; }
+        
+        .ref-card.struct { border-color: #e74c3c; }
+        .ref-card.struct h3 { color: #e74c3c; }
+        
+        .ref-card.pattern { border-color: #8bc34a; }
+        .ref-card.pattern h3 { color: #8bc34a; }
+        
+        .ref-card.memory { border-color: #bb86fc; }
+        .ref-card.memory h3 { color: #bb86fc; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚔️ UE5 Combat Architecture Bible</h1>
+        <p>Ultra-Comprehensive C++ Combat System Reference | Vertical Flow | All Data Structures Documented</p>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #9b59b6;"></div>
+            <span class="legend-text"><strong>Asset Domain</strong> - Editor-authored data</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #3498db;"></div>
+            <span class="legend-text"><strong>Animation Runtime</strong> - Notify execution</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span class="legend-text"><strong>Timing Gatekeeper</strong> - Delegate bridge</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #27ae60;"></div>
+            <span class="legend-text"><strong>Actor Coordinator</strong> - Command center</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span class="legend-text"><strong>Physics Query</strong> - World traces</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e91e8b;"></div>
+            <span class="legend-text"><strong>State Management</strong> - Health component</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00bcd4;"></div>
+            <span class="legend-text"><strong>Native Responders</strong> - C++ systems</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #8bc34a;"></div>
+            <span class="legend-text"><strong>Cosmetic Responders</strong> - BP/Art layer</span>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button class="control-btn" onclick="zoomIn()">🔍 Zoom In</button>
+        <button class="control-btn" onclick="zoomOut()">🔍 Zoom Out</button>
+        <button class="control-btn" onclick="resetZoom()">↺ Reset</button>
+        <button class="control-btn" onclick="downloadSVG()">⬇ Download SVG</button>
+    </div>
+    
+    <div class="diagram-container" id="diagram-container">
+        <div class="canvas-hint">🖱️ Scroll to zoom • Drag to pan</div>
+        <div class="zoom-indicator" id="zoom-indicator">100%</div>
+        <div class="diagram-canvas" id="diagram-canvas">
+            <div class="mermaid" id="mermaid-diagram">
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#1a1a2e', 'primaryTextColor': '#eee', 'primaryBorderColor': '#4a4a6a', 'lineColor': '#61dafb', 'secondaryColor': '#16213e', 'tertiaryColor': '#0f3460', 'noteTextColor': '#000', 'noteBkgColor': '#ffd93d', 'fontSize': '14px'}}}%%
+
+flowchart TB
+    direction TB
+
+    %% ============================================================
+    %% LAYER 0: ASSET DOMAIN
+    %% ============================================================
+    subgraph LAYER0["📁 LAYER 0: ASSET DOMAIN ━━ Authored in Editor"]
+        direction TB
+        
+        subgraph MONTAGE["UAnimMontage Asset"]
+            direction TB
+            MONTAGE_DEF["<b>UAnimMontage</b><br/>━━━━━━━━━━━━━<br/>• Composite animation asset<br/>• Contains notify tracks<br/>• Defines sections/slots"]
+            
+            NOTIFY_TRACK["<b>Notify Track</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>Frame 0 ══════════ Frame N<br/>         ▲ notify fires"]
+            
+            MONTAGE_DEF --> NOTIFY_TRACK
+        end
+        
+        subgraph NOTIFY_DEF["UAnimNotify Subclass"]
+            NOTIFY_CLASS["<b>UAnimNotify_OpenHitWindow</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY parameters:<br/>• float DamageMultiplier<br/>• TSubclassOf DamageType"]
+        end
+        
+        NOTIFY_TRACK -->|"references"| NOTIFY_CLASS
+    end
+
+    %% ============================================================
+    %% LAYER 1: ANIMATION RUNTIME
+    %% ============================================================
+    subgraph LAYER1["🎬 LAYER 1: ANIMATION RUNTIME ━━ Engine Tick"]
+        direction TB
+        
+        subgraph ANIM_INST["UAnimInstance"]
+            direction TB
+            ANIM_STATE["<b>Animation State Machine</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>• Processes montage playback<br/>• Detects notify triggers<br/>• Calls Notify virtual method"]
+            
+            MONTAGE_INST["<b>FAnimMontageInstance</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>float Position<br/>float PlayRate<br/>bool bPlaying<br/>int32 MontageInstanceID"]
+            
+            ANIM_STATE --> MONTAGE_INST
+        end
+        
+        subgraph NOTIFY_EXEC["Notify Execution"]
+            direction TB
+            
+            NOTIFY_PARAMS["<b>Parameters Received</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>USkeletalMeshComponent* MeshComp<br/>UAnimSequenceBase* Animation"]
+            
+            SKEL_MESH["<b>USkeletalMeshComponent</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Inheritance:<br/>USkeletalMeshComponent<br/> ↳ USkinnedMeshComponent<br/>  ↳ UMeshComponent<br/>   ↳ UPrimitiveComponent<br/>    ↳ USceneComponent<br/>     ↳ UActorComponent<br/>━━━━━━━━━━━━━━━━━━━━<br/>GetOwner → AActor*<br/>GetAnimInstance → UAnimInstance*<br/>GetSocketLocation → FVector"]
+            
+            NOTIFY_PARAMS --> SKEL_MESH
+        end
+        
+        MONTAGE_INST -->|"frame N reached"| NOTIFY_PARAMS
+    end
+
+    %% ============================================================
+    %% DATA FLOW ANNOTATION
+    %% ============================================================
+    subgraph DATAFLOW1["📨 DATA FLOW: Notify → Component"]
+        DATA_NOTE["<b>What Crosses Boundary?</b><br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>1. MeshComp→GetOwner<br/>2. Cast to AHeroCharacter<br/>3. FindComponentByClass<br/>4. Invoke OpenWindow<br/>━━━━━━━━━━━━━━━━━━━━<br/>DATA: None - pure control flow<br/>POINTER: Raw from engine ⚠️"]
+    end
+
+    %% ============================================================
+    %% LAYER 2: TIMING GATEKEEPER
+    %% ============================================================
+    subgraph LAYER2["⏱️ LAYER 2: TIMING GATEKEEPER ━━ Signal Emitter"]
+        direction TB
+        
+        subgraph RATIONALE["💡 DESIGN RATIONALE"]
+            WHY_NAME["<b>Why UHitWindowComponent?</b><br/><b>Not USwordComponent?</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Single Responsibility:<br/>• Answers ONE question only<br/>• 'WHEN can damage occur?'<br/>• NOT what weapon or how much<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Decoupling:<br/>• Fists, swords, hammers, spells<br/>• ALL reuse same component<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Testability:<br/>• Unit test timing in isolation"]
+        end
+        
+        subgraph HITWINDOW["UHitWindowComponent"]
+            direction TB
+            
+            HW_CLASS["<b>: UActorComponent</b><br/>━━━━━━━━━━━━━━━━━"]
+            
+            DELEGATE_DECL["<b>Delegate Declaration</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>DECLARE_MULTICAST_DELEGATE<br/>  FOnAttackWindow<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Signature: void<br/>Parameters: NONE<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Signal-only delegate<br/>No payload transmitted"]
+            
+            DELEGATE_INST["<b>Delegate Instance</b><br/>━━━━━━━━━━━━━━━━━━━<br/>FOnAttackWindow OnAttackWindow<br/>━━━━━━━━━━━━━━━━━━━<br/>Internal: TArray of FDelegate<br/> └─ InvocationList<br/>   └─ Bound function ptrs"]
+            
+            OPEN_METHOD["<b>void OpenWindow</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>UFUNCTION BlueprintCallable<br/>━━━━━━━━━━━━━━━━━━━━━<br/>OnAttackWindow.Broadcast<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Iterates InvocationList<br/>Calls ALL bound functions<br/>Order is UNDEFINED ⚠️"]
+            
+            HW_CLASS --> DELEGATE_DECL
+            DELEGATE_DECL --> DELEGATE_INST
+            DELEGATE_INST --> OPEN_METHOD
+        end
+    end
+
+    %% ============================================================
+    %% LAYER 3: ACTOR COORDINATOR
+    %% ============================================================
+    subgraph LAYER3["🎮 LAYER 3: ACTOR COORDINATOR ━━ Command Center"]
+        direction TB
+        
+        subgraph BEGINPLAY["BeginPlay Setup"]
+            direction TB
+            
+            COMP_LOOKUP["<b>Component Discovery</b><br/>━━━━━━━━━━━━━━━━━━━━━━<br/>HitWindow = FindComponentByClass<br/>  &lt;UHitWindowComponent&gt;<br/>━━━━━━━━━━━━━━━━━━━━<br/>Returns: raw ptr or nullptr<br/>MUST null-check ⚠️"]
+            
+            BIND_DELEGATE["<b>Delegate Binding</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>HitWindow→OnAttackWindow<br/>  .AddUObject<br/>    this,<br/>    &amp;AHeroCharacter::HandleAttackWindow<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>AddUObject: C++ only, faster<br/>AddDynamic: BP-visible, slower<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Stores TWeakObjectPtr + func ptr"]
+            
+            COMP_LOOKUP --> BIND_DELEGATE
+        end
+        
+        subgraph HANDLE_ATTACK["HandleAttackWindow"]
+            direction TB
+            
+            DAMAGE_DEF["<b>constexpr float Damage = 35.f</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>Compile-time constant<br/>No runtime allocation"]
+            
+            QUERY_VICTIMS["<b>QueryVictims</b><br/>━━━━━━━━━━━━━━━━━━━<br/>Returns TArray&lt;AActor*&gt;<br/>Uses SweepMultiByChannel"]
+            
+            LOOP["<b>for AActor* Victim</b><br/>━━━━━━━━━━━━━━━━━━<br/>Range-based iteration<br/>Process each hit actor"]
+            
+            DAMAGE_DEF --> QUERY_VICTIMS
+            QUERY_VICTIMS --> LOOP
+        end
+    end
+
+    %% ============================================================
+    %% LAYER 4: PHYSICS QUERY
+    %% ============================================================
+    subgraph LAYER4["🌍 LAYER 4: PHYSICS QUERY ━━ World Traces"]
+        direction TB
+        
+        subgraph TRACE_CONFIG["Trace Configuration"]
+            COLL_PARAMS["<b>FCollisionQueryParams</b><br/>━━━━━━━━━━━━━━━━━━━━━━<br/>TraceTag: FName debug<br/>bTraceComplex: per-poly<br/>bReturnPhysicalMaterial: true<br/>━━━━━━━━━━━━━━━━━━━━<br/>AddIgnoredActor: self"]
+            
+            COLL_SHAPE["<b>FCollisionShape</b><br/>━━━━━━━━━━━━━━━━━━<br/>MakeSphere: radius<br/>MakeCapsule: r, hh<br/>MakeBox: half extents"]
+            
+            COLL_CHANNEL["<b>ECollisionChannel</b><br/>━━━━━━━━━━━━━━━━━━<br/>ECC_Pawn: default<br/>ECC_GameTraceChannel1:<br/>  Custom 'Attack' channel"]
+            
+            COLL_PARAMS --> COLL_SHAPE --> COLL_CHANNEL
+        end
+        
+        subgraph TRACE_EXEC["Trace Execution"]
+            SWEEP_CALL["<b>GetWorld→SweepMultiByChannel</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>TArray&lt;FHitResult&gt;&amp; OutHits<br/>FVector Start, End<br/>FQuat Rotation<br/>ECollisionChannel Channel<br/>FCollisionShape Shape<br/>FCollisionQueryParams Params<br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Returns: bool bHitSomething"]
+        end
+        
+        subgraph HITRESULT["FHitResult ━━ Complete Struct"]
+            direction TB
+            
+            HR_HEAD["<b>USTRUCT BlueprintType FHitResult</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>Trace hit information container"]
+            
+            HR_FLAGS["<b>━━ Hit Flags ━━</b><br/>bBlockingHit: bool<br/>bStartPenetrating: bool"]
+            
+            HR_DIST["<b>━━ Distance ━━</b><br/>Time: float 0.0-1.0 normalized<br/>Distance: float from start"]
+            
+            HR_VEC["<b>━━ Spatial Data ━━</b><br/>Location: FVector on trace<br/>ImpactPoint: FVector surface<br/>Normal: FVector at Location<br/>ImpactNormal: FVector at impact<br/>TraceStart, TraceEnd: FVector"]
+            
+            HR_REF["<b>━━ Object Refs ━━</b><br/>HitObjectHandle: FActorInstanceHandle<br/>Component: TWeakObjectPtr<br/>━━━━━━━━━━━━━━━━━━<br/>GetActor → AActor*<br/>GetComponent → UPrimComp*"]
+            
+            HR_SURF["<b>━━ Surface Data ━━</b><br/>PhysMaterial: TWeakObjectPtr<br/>BoneName: FName skeletal<br/>FaceIndex: int32 triangle"]
+            
+            HR_HEAD --> HR_FLAGS --> HR_DIST --> HR_VEC --> HR_REF --> HR_SURF
+        end
+        
+        TRACE_EXEC --> HITRESULT
+    end
+
+    %% ============================================================
+    %% LAYER 5: STATE MANAGEMENT
+    %% ============================================================
+    subgraph LAYER5["❤️ LAYER 5: STATE MANAGEMENT ━━ Health Component"]
+        direction TB
+        
+        subgraph HEALTH_PROPS["State Properties"]
+            PROPS["<b>UPROPERTY EditAnywhere</b><br/>━━━━━━━━━━━━━━━━━━<br/>float Health<br/>float MaxHealth = 100.f<br/>━━━━━━━━━━━━━━━━━━<br/>UPROPERTY enables:<br/>• GC tracking<br/>• Serialization<br/>• Editor exposure"]
+        end
+        
+        subgraph DUAL_DELEGATES["Dual Delegate System"]
+            direction TB
+            
+            NATIVE_DECL["<b>━━ For C++ Systems ━━</b><br/>DECLARE_MULTICAST_DELEGATE_TwoParams<br/>  FOnDamagedNative,<br/>  float Amount,<br/>  AActor* Causer<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Faster, C++ only"]
+            
+            FX_DECL["<b>━━ For Blueprint ━━</b><br/>DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams<br/>  FOnDamagedFX,<br/>  float, Amount,<br/>  AActor*, Causer<br/>━━━━━━━━━━━━━━━━━━━━━<br/>Slower, BP-visible"]
+            
+            NATIVE_DECL ~~~ FX_DECL
+        end
+        
+        subgraph APPLY_DMG["ApplyDamage Method"]
+            direction TB
+            
+            SIG["<b>void ApplyDamage</b><br/>  float Amount, AActor* Causer"]
+            
+            CLAMP["<b>State Mutation</b><br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Health = FMath::Clamp<br/>  Health - Amount,<br/>  0.f, MaxHealth<br/>━━━━━━━━━━━━━━━━━━━━<br/>Never negative<br/>Never exceeds max"]
+            
+            BC_NATIVE["<b>OnDamagedNative.Broadcast</b><br/>  Amount, Causer"]
+            
+            BC_FX["<b>OnDamagedFX.Broadcast</b><br/>  Amount, Causer"]
+            
+            DEATH["<b>if Health &lt;= 0.f</b><br/>  // Trigger death state"]
+            
+            SIG --> CLAMP --> BC_NATIVE --> BC_FX --> DEATH
+        end
+    end
+
+    %% ============================================================
+    %% LAYER 6: NATIVE RESPONDERS
+    %% ============================================================
+    subgraph LAYER6["⚙️ LAYER 6: NATIVE RESPONDERS ━━ C++ Systems"]
+        direction TB
+        
+        COMBO["<b>UComboMeterComponent</b><br/>━━━━━━━━━━━━━━━━━━<br/>Tracks consecutive hits<br/>Resets on timer expiry<br/>Multiplies damage/score"]
+        
+        AGGRO["<b>UAIAggroManager</b><br/>━━━━━━━━━━━━━━━━<br/>Updates threat tables<br/>Influences AI targeting<br/>Manages hate decay"]
+        
+        STATS["<b>UAnalyticsSubsystem</b><br/>━━━━━━━━━━━━━━━━━━<br/>Records damage dealt<br/>Tracks damage sources<br/>Feeds telemetry"]
+        
+        ARMOR["<b>UArmorComponent</b><br/>━━━━━━━━━━━━━━━━<br/>Pre-processes damage<br/>Applies resistances<br/>Handles damage types"]
+        
+        NATIVE_BIND["<b>Binding Pattern</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>HealthComp→OnDamagedNative<br/>  .AddUObject this,<br/>  &amp;UComboMeter::OnDamageDealt<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>Handler signature MUST match<br/>void fn float, AActor*"]
+    end
+
+    %% ============================================================
+    %% LAYER 7: COSMETIC RESPONDERS
+    %% ============================================================
+    subgraph LAYER7["🎨 LAYER 7: COSMETIC RESPONDERS ━━ BP/Art Layer"]
+        direction TB
+        
+        VFX["<b>BP_BloodVFXSpawner</b><br/>━━━━━━━━━━━━━━━━━━<br/>SpawnEmitterAtLocation<br/>Uses ImpactPoint<br/>Scales with damage"]
+        
+        SFX["<b>BP_HitSoundPlayer</b><br/>━━━━━━━━━━━━━━━━━<br/>Plays sound at location<br/>Based on PhysMaterial<br/>Damage thresholds"]
+        
+        SHAKE["<b>BP_CameraShakeManager</b><br/>━━━━━━━━━━━━━━━━━━━━<br/>Player cam shake<br/>Scales with damage<br/>Hit vs crit variants"]
+        
+        DMGNUM["<b>WBP_DamageNumbers</b><br/>━━━━━━━━━━━━━━━━━━<br/>UI widget spawn<br/>World-space position<br/>Animate and fade"]
+        
+        HITREACT["<b>ABP_HitReaction</b><br/>━━━━━━━━━━━━━━━━━━<br/>Hit react montage<br/>Direction-based select<br/>Blends with current"]
+        
+        BP_BIND["<b>Blueprint Binding</b><br/>━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY BlueprintAssignable<br/>enables 'Assign' node<br/>Event Dispatcher pattern"]
+    end
+
+    %% ============================================================
+    %% MEMORY REFERENCE
+    %% ============================================================
+    subgraph MEMORY["🧠 MEMORY MANAGEMENT REFERENCE"]
+        direction TB
+        
+        PTR_TYPES["<b>Pointer Types</b><br/>━━━━━━━━━━━━━━━━━━━━━━━━━<br/>UPROPERTY TObjectPtr&lt;T&gt;: GC-tracked ✓<br/>TWeakObjectPtr: safe weak ✓<br/>Raw T*: NOT GC-aware ⚠️<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>if ptr: null check<br/>IsValid ptr: null + pending kill<br/>WeakPtr.IsValid: safe check"]
+        
+        DEL_SAFETY["<b>Delegate Safety</b><br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>AddUObject stores weak ptr<br/>Auto-removes on destroy<br/>━━━━━━━━━━━━━━━━━━━━━━━<br/>NEVER bind raw ptr ⚠️<br/>NEVER capture raw in lambda ⚠️"]
+    end
+
+    %% ============================================================
+    %% CONNECTIONS
+    %% ============================================================
+    LAYER0 ==>|"Montage plays"| LAYER1
+    LAYER1 ==>|"Notify called"| DATAFLOW1
+    DATAFLOW1 ==>|"OpenWindow"| LAYER2
+    LAYER2 ==>|"Broadcast signal"| LAYER3
+    LAYER3 ==>|"SweepMulti"| LAYER4
+    LAYER4 ==>|"FHitResult array"| LAYER3
+    LAYER3 ==>|"ApplyDamage"| LAYER5
+    LAYER5 ==>|"OnDamagedNative"| LAYER6
+    LAYER5 ==>|"OnDamagedFX"| LAYER7
+
+    %% ============================================================
+    %% STYLES
+    %% ============================================================
+    classDef layer0 fill:#2d1b4e,stroke:#9b59b6,stroke-width:2px,color:#fff
+    classDef layer1 fill:#1a3a5c,stroke:#3498db,stroke-width:2px,color:#fff
+    classDef layer2 fill:#4a3000,stroke:#f39c12,stroke-width:3px,color:#fff
+    classDef layer3 fill:#1e4d2b,stroke:#27ae60,stroke-width:2px,color:#fff
+    classDef layer4 fill:#3d1f1f,stroke:#e74c3c,stroke-width:2px,color:#fff
+    classDef layer5 fill:#4a1942,stroke:#e91e8b,stroke-width:2px,color:#fff
+    classDef layer6 fill:#0d3d4a,stroke:#00bcd4,stroke-width:3px,color:#fff
+    classDef layer7 fill:#2e4a1e,stroke:#8bc34a,stroke-width:3px,color:#fff
+    classDef note fill:#3d3d00,stroke:#ffd93d,stroke-width:2px,color:#ffd93d
+    classDef dataflow fill:#1a1a2e,stroke:#61dafb,stroke-width:2px,color:#61dafb
+    classDef memory fill:#2a1a3a,stroke:#bb86fc,stroke-width:2px,color:#bb86fc
+
+    class LAYER0 layer0
+    class LAYER1 layer1
+    class LAYER2 layer2
+    class LAYER3 layer3
+    class LAYER4 layer4
+    class LAYER5 layer5
+    class LAYER6 layer6
+    class LAYER7 layer7
+    class DATAFLOW1,RATIONALE note
+    class MEMORY memory
+        </div>
+        </div>
+    </div>
+    
+    <div class="quick-ref">
+        <h2>📚 Quick Code Reference</h2>
+        <div class="ref-grid">
+            <div class="ref-card delegate">
+                <h3>Delegate Declarations</h3>
+                <pre><code>// Signal-only (no payload)
+DECLARE_MULTICAST_DELEGATE(FOnAttackWindow);
+
+// With parameters (C++ only)
+DECLARE_MULTICAST_DELEGATE_TwoParams(
+    FOnDamagedNative,
+    float, Amount,
+    AActor*, Causer
+);
+
+// Blueprint-visible
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+    FOnDamagedFX,
+    float, Amount,
+    AActor*, Causer
+);</code></pre>
+            </div>
+            
+            <div class="ref-card struct">
+                <h3>FHitResult Key Members</h3>
+                <pre><code>FHitResult Hit;
+
+// Flags
+Hit.bBlockingHit      // Did we hit?
+Hit.bStartPenetrating // Inside geo?
+
+// Positions  
+Hit.ImpactPoint       // Surface contact
+Hit.ImpactNormal      // Surface direction
+
+// References
+Hit.GetActor()        // AActor* hit
+Hit.GetComponent()    // UPrimitiveComp*
+Hit.PhysMaterial      // Surface type
+Hit.BoneName          // Skeletal bone</code></pre>
+            </div>
+            
+            <div class="ref-card pattern">
+                <h3>Binding Pattern</h3>
+                <pre><code>// In BeginPlay
+void AHeroCharacter::BeginPlay() {
+    Super::BeginPlay();
+    
+    HitWindow = FindComponentByClass
+        &lt;UHitWindowComponent&gt;();
+        
+    if (HitWindow) {
+        HitWindow->OnAttackWindow.AddUObject(
+            this,
+            &AHeroCharacter::HandleAttackWindow
+        );
+    }
+}</code></pre>
+            </div>
+            
+            <div class="ref-card memory">
+                <h3>Pointer Safety</h3>
+                <pre><code>// UPROPERTY - GC tracked, auto-nulled
+UPROPERTY()
+UObject* SafePtr;
+
+// Weak - safe for delegates/lambdas
+TWeakObjectPtr&lt;AActor&gt; WeakRef;
+if (WeakRef.IsValid()) { ... }
+
+// Raw - DANGEROUS, not GC-aware
+UObject* RawPtr; // Avoid!
+
+// Validation
+if (IsValid(Ptr)) { // null + pending kill
+    Ptr->DoSomething();
+}</code></pre>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>UE5 Combat Architecture Bible | Generated for Game Development Reference</p>
+        <p>Based on Unreal Engine 5 C++ Best Practices</p>
+    </div>
+    
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            securityLevel: 'loose'
+        });
+        
+        // Canvas state
+        let scale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let startX, startY;
+        
+        const container = document.getElementById('diagram-container');
+        const canvas = document.getElementById('diagram-canvas');
+        const zoomIndicator = document.getElementById('zoom-indicator');
+        
+        // Apply transform
+        function updateTransform() {
+            canvas.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            zoomIndicator.textContent = `${Math.round(scale * 100)}%`;
+        }
+        
+        // Mouse wheel zoom
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Zoom factor
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = Math.min(Math.max(0.1, scale * zoomFactor), 5);
+            
+            // Adjust pan to zoom toward mouse position
+            const scaleChange = newScale - scale;
+            panX -= (mouseX - panX) * (scaleChange / scale);
+            panY -= (mouseY - panY) * (scaleChange / scale);
+            
+            scale = newScale;
+            updateTransform();
+        }, { passive: false });
+        
+        // Mouse drag pan
+        container.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Left click only
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+            container.style.cursor = 'grabbing';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+        });
+        
+        // Prevent text selection while dragging
+        container.addEventListener('selectstart', (e) => {
+            if (isDragging) e.preventDefault();
+        });
+        
+        // Button controls (still work)
+        function zoomIn() {
+            scale = Math.min(scale * 1.2, 5);
+            updateTransform();
+        }
+        
+        function zoomOut() {
+            scale = Math.max(scale * 0.8, 0.1);
+            updateTransform();
+        }
+        
+        function resetZoom() {
+            scale = 1;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+        }
+        
+        function downloadSVG() {
+            const svg = document.querySelector('.mermaid svg');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ue5_combat_architecture.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Center the diagram initially after mermaid renders
+        setTimeout(() => {
+            const svg = document.querySelector('.mermaid svg');
+            if (svg) {
+                const containerRect = container.getBoundingClientRect();
+                panX = 20;
+                panY = 20;
+                updateTransform();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

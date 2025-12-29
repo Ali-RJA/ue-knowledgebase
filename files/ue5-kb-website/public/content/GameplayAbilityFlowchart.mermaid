@@ -1,0 +1,26 @@
+flowchart TD
+    subgraph Ability["Gameplay Ability (Sword Swing)"]
+        Cost["<b>Cost Variable</b><br/>Points to: GE_Stamina_15"]
+        CD["<b>Cooldown Variable</b><br/>Points to: GE_CD_2sec"]
+    end
+
+    subgraph Logic["Commit Phase (GAS Brain)"]
+        CheckCost{"Has 15 Stamina?"}
+        CheckCD{"Is Cooldown Tag gone?"}
+    end
+
+    subgraph Apply["Action"]
+        Pay["-15 Stamina applied"]
+        Wait["'Cooldown.Swing' Tag applied for 2s"]
+        Swing["SWING SWORD"]
+    end
+
+    Ability --> CheckCost
+    CheckCost -->|Yes| CheckCD
+    CheckCD -->|Yes| Apply
+    CheckCost -->|No| Fail["Ability Cancelled"]
+    CheckCD -->|No| Fail
+
+    style Cost fill:#742a2a,stroke:#fff,color:#fff
+    style CD fill:#2c5282,stroke:#fff,color:#fff
+    style Logic fill:#1a202c,stroke:#4a5568,color:#fff

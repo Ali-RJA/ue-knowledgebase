@@ -1,0 +1,66 @@
+flowchart TD
+    %% LAYER 1: DATA ASSETS (The Source)
+    subgraph DATA_LAYER ["LAYER 1: DATA DEFINITION (UDataAsset)"]
+        direction TB
+        
+        subgraph Stance_Stone ["DA_Stance_Stone"]
+            direction LR
+            D1["<b>STATS</b><br/>• Poise DMG: 2.0x<br/>• Health DMG: 1.0x"]
+            D2["<b>ANIMS</b><br/>• Idle: AS_Stone_Pose<br/>• Combo: AM_Stone_4Hit"]
+            D3["<b>FX</b><br/>• Trail: Red_Heavy<br/>• SFX: Metal_Clang"]
+        end
+
+        subgraph Stance_Water ["DA_Stance_Water"]
+            direction LR
+            W1["<b>STATS</b><br/>• Poise DMG: 1.2x<br/>• Health DMG: 1.5x"]
+            W2["<b>ANIMS</b><br/>• Idle: AS_Water_Pose<br/>• Combo: AM_Water_Flurry"]
+            W3["<b>FX</b><br/>• Trail: Blue_Fluid<br/>• SFX: Water_Splash"]
+        end
+    end
+
+    %% LAYER 2: THE MANAGER (The Router)
+    subgraph SYSTEM_LAYER ["LAYER 2: STATE MANAGEMENT"]
+        direction TB
+        ActiveStance["<b>CurrentStance Pointer</b><br/>(The 'Active Manual')"]
+    end
+
+    %% LAYER 3: THE WORKERS (The Readers)
+    subgraph EXECUTION_LAYER ["LAYER 3: EXECUTION (Components)"]
+        direction TB
+        
+        CombatComp["<b>Combat Component</b><br/>Calculates damage & impact<br/>based on Stance Stats"]
+        
+        AnimLayer["<b>Linked Anim Layer</b><br/>Overlays the Stance Idle &<br/>Locomotion on the Mesh"]
+        
+        ImpactSys["<b>VFX/SFX Coordinator</b><br/>Spawns the correct particles<br/>defined by the Stance"]
+        
+        GAS["<b>Gameplay Ability System</b><br/>Triggers specific Stance-exclusive<br/>Abilities (e.g. Shield Pierce)"]
+    end
+
+    %% LAYER 4: WORLD INTERACTION
+    subgraph WORLD_LAYER ["LAYER 4: WORLD INTERACTION"]
+        UI["<b>UI / HUD</b><br/>Displays Stance Icon/Name"]
+        AI["<b>AI Perception</b><br/>Reacts to Player Stance<br/>(e.g. Defensive/Aggressive)"]
+    end
+
+    %% FLOW CONNECTIONS
+    DATA_LAYER ==> SYSTEM_LAYER
+    SYSTEM_LAYER ==> EXECUTION_LAYER
+    
+    %% DETAILED READS
+    ActiveStance -.->|Reads Damage| CombatComp
+    ActiveStance -.->|Reads Poses| AnimLayer
+    ActiveStance -.->|Reads Colors| ImpactSys
+    ActiveStance -.->|Triggers| GAS
+    
+    EXECUTION_LAYER --> UI
+    EXECUTION_LAYER --> AI
+
+    %% STYLING
+    style DATA_LAYER fill:#1a1a1a,stroke:#333,color:#fff
+    style SYSTEM_LAYER fill:#2d3748,stroke:#4a5568,color:#fff
+    style EXECUTION_LAYER fill:#1a365d,stroke:#2c5282,color:#fff
+    style WORLD_LAYER fill:#22543d,stroke:#276749,color:#fff
+    
+    style Stance_Stone fill:#742a2a,stroke:#fff,color:#fff
+    style Stance_Water fill:#2c5282,stroke:#fff,color:#fff

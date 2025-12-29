@@ -1,0 +1,26 @@
+flowchart TD
+    subgraph Trigger["Input / Event"]
+        Press["Button Pressed"]
+        Hold["Button Held"]
+        Spawn["Ability Granted"]
+    end
+
+    subgraph Policy["Activation Policy (Logic)"]
+        OnInput["<b>OnInputPressed</b><br/>'Do it now!'"]
+        OnHeld["<b>WhileInputHeld</b><br/>'Keep doing it'"]
+        OnSpawn["<b>OnSpawned</b><br/>'Always be doing it'"]
+    end
+
+    subgraph Results["Combat Action"]
+        Swing["Sword Swing"]
+        Block["Block Stance"]
+        Regen["HP Regen"]
+    end
+
+    Press --> OnInput --> Swing
+    Hold --> OnHeld --> Block
+    Spawn --> OnSpawn --> Regen
+
+    style OnInput fill:#1a365d,stroke:#2c5282,color:#fff
+    style OnHeld fill:#44337a,stroke:#553c9a,color:#fff
+    style OnSpawn fill:#22543d,stroke:#276749,color:#fff
