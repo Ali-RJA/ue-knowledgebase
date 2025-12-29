@@ -7,6 +7,7 @@ import { TopicDetailPage } from './pages/TopicDetailPage';
 import { DiagramsPage } from './pages/DiagramsPage';
 import { DiagramDetailPage } from './pages/DiagramDetailPage';
 import { LegoPiecesPage } from './pages/LegoPiecesPage';
+import { LegoPieceDetailPage } from './pages/LegoPieceDetailPage';
 import { CollectionsPage } from './pages/CollectionsPage';
 import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { SearchPage } from './pages/SearchPage';
@@ -31,6 +32,7 @@ function App() {
 
             {/* Lego Pieces */}
             <Route path="/lego-pieces" element={<LegoPiecesPage />} />
+            <Route path="/lego-piece/:slug" element={<LegoPieceDetailPage />} />
 
             {/* Collections */}
             <Route path="/collections" element={<CollectionsPage />} />

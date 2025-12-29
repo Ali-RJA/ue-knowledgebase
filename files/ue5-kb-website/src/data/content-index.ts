@@ -1,4 +1,4 @@
-import type { ContentItem, Topic, Diagram } from '../types/content';
+import type { ContentItem, Topic, Diagram, LegoPiece } from '../types/content';
 
 // Topic content items from markdown files
 export const topics: Topic[] = [
@@ -284,6 +284,300 @@ export const diagrams: Diagram[] = [
   },
 ];
 
+// Lego Pieces (reusable C++ code snippets)
+export const legoPieces: LegoPiece[] = [
+  {
+    id: 'lego-01',
+    slug: 'uclass-generated-body',
+    title: 'UCLASS() & GENERATED_BODY()',
+    type: 'lego-piece',
+    pieceType: 'Macros',
+    tags: ['Macros', 'Component', 'Architecture'],
+    summary: 'The reflection foundation - gateway to Unreal Engine\'s reflection system.',
+    codeSnippet: `// MyActor.h
+#pragma once
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "MyActor.generated.h" // MUST be the last include
+
+UCLASS(Blueprintable, BlueprintType, Category="Hattin|Core")
+class MYPROJECT_API AMyActor : public AActor
+{
+    GENERATED_BODY()
+public:
+    AMyActor();
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Settings")
+    float InteractionRange = 200.0f;
+};`,
+    explanation: 'UCLASS macro tells UHT to parse this class and generate reflection code. GENERATED_BODY() must be at the top of your class body.',
+    diagram: `flowchart TD
+    H[Header File .h] --> UHT[Unreal Header Tool]
+    UHT --> GCH[generated.h File]
+    UCLASS --> UHT
+    GB[GENERATED_BODY] --> GCH
+    UHT --> CDO[Class Default Object]`,
+    relatedTopics: ['topic-01', 'topic-10'],
+  },
+  {
+    id: 'lego-02',
+    slug: 'uproperty-reflection',
+    title: 'UPROPERTY() Reflection',
+    type: 'lego-piece',
+    pieceType: 'Macros',
+    tags: ['Macros', 'Component'],
+    summary: 'Connecting C++ to the Editor - expose variables and enable GC tracking.',
+    codeSnippet: `// Combat variables exposed to Editor
+UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "0.0"))
+float BaseDamage = 25.0f;
+
+// State variable visible but not editable
+UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "State")
+bool bIsStunned = false;
+
+// Component reference (Must be UPROPERTY for GC safety)
+UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+TObjectPtr<UStaticMeshComponent> WeaponMesh;`,
+    explanation: 'UPROPERTY exposes variables to the Editor/Blueprints and notifies the Garbage Collector.',
+    diagram: `graph TD
+    Prop[C++ Variable] --> UProp[UPROPERTY]
+    UProp --> Edit[EditAnywhere]
+    UProp --> View[VisibleAnywhere]
+    UProp --> BP[BlueprintReadWrite]
+    UProp --> GC[Garbage Collector]`,
+    relatedTopics: ['topic-01'],
+  },
+  {
+    id: 'lego-03',
+    slug: 'ufunction-blueprintcallable',
+    title: 'UFUNCTION(BlueprintCallable)',
+    type: 'lego-piece',
+    pieceType: 'Macros',
+    tags: ['Macros', 'GAS'],
+    summary: 'Exposing logic to Blueprints - call C++ from Blueprint graphs.',
+    codeSnippet: `// Standard callable function with execution pins
+UFUNCTION(BlueprintCallable, Category = "Abilities")
+void PerformMeleeAttack(float PowerMultiplier);
+
+// Pure function (No execution pin, returns data)
+UFUNCTION(BlueprintPure, Category = "Abilities")
+float GetCurrentStamina() const;
+
+// Console command function
+UFUNCTION(Exec)
+void Debug_KillAllEnemies();`,
+    explanation: 'BlueprintCallable creates nodes with execution pins. BlueprintPure for getters without side effects.',
+    diagram: `graph LR
+    CPP[C++ Function] --> Reflect[UFUNCTION]
+    Reflect --> BP[Blueprint Node]
+    BP --> Callable[BlueprintCallable]
+    BP --> Pure[BlueprintPure]`,
+    relatedTopics: ['topic-02'],
+  },
+  {
+    id: 'lego-04',
+    slug: 'blueprint-native-event',
+    title: 'BlueprintNativeEvent',
+    type: 'lego-piece',
+    pieceType: 'Macros',
+    tags: ['Macros', 'Delegates'],
+    summary: 'Hybrid event pattern - C++ default with Blueprint override capability.',
+    codeSnippet: `// --- Header (.h) ---
+UFUNCTION(BlueprintNativeEvent, Category = "Interaction")
+void OnInteract(AActor* Interactor);
+
+// --- Source (.cpp) ---
+void AMyActor::OnInteract_Implementation(AActor* Interactor)
+{
+    if (Interactor)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Interacted with: %s"), *Interactor->GetName());
+    }
+}`,
+    explanation: 'Provides default C++ implementation while allowing designers to override or extend in Blueprints.',
+    diagram: `graph TD
+    Call[C++ Call] --> Native{Has BP Override?}
+    Native -- Yes --> BP[Blueprint Event]
+    Native -- No --> Impl[_Implementation]`,
+    relatedTopics: ['topic-04'],
+  },
+  {
+    id: 'lego-05',
+    slug: 'timer-handle',
+    title: 'FTimerHandle & Timers',
+    type: 'lego-piece',
+    pieceType: 'Lifecycle',
+    tags: ['Timer', 'Lifecycle'],
+    summary: 'Delayed execution and repeating timers for gameplay logic.',
+    codeSnippet: `// Member variable to store timer handle
+FTimerHandle CooldownTimerHandle;
+
+// Set a one-shot timer (3 second delay)
+GetWorldTimerManager().SetTimer(
+    CooldownTimerHandle,
+    this,
+    &AMyActor::OnCooldownComplete,
+    3.0f,  // Delay
+    false  // Looping?
+);
+
+// Clear timer if needed
+GetWorldTimerManager().ClearTimer(CooldownTimerHandle);`,
+    explanation: 'Timers execute functions after a delay. Store FTimerHandle to cancel or check status.',
+    diagram: `flowchart LR
+    Set[SetTimer] --> Wait[Delay]
+    Wait --> Execute[Callback]
+    Clear[ClearTimer] -.-> Wait`,
+    relatedTopics: ['topic-10'],
+  },
+  {
+    id: 'lego-06',
+    slug: 'delegate-binding',
+    title: 'Delegate Binding Patterns',
+    type: 'lego-piece',
+    pieceType: 'Events',
+    tags: ['Delegates', 'Component'],
+    summary: 'Event subscription patterns - bind functions to delegates.',
+    codeSnippet: `// Declare a delegate type
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHealthChanged, float, NewHealth);
+
+// Member delegate
+UPROPERTY(BlueprintAssignable, Category = "Events")
+FOnHealthChanged OnHealthChanged;
+
+// Broadcast the event
+OnHealthChanged.Broadcast(CurrentHealth);
+
+// Binding to component events
+BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AMyActor::OnOverlapBegin);`,
+    explanation: 'Delegates enable decoupled communication. Use DYNAMIC for Blueprint compatibility.',
+    diagram: `graph TD
+    Delegate[Delegate] --> Bind[AddDynamic]
+    Delegate --> Broadcast[Broadcast]
+    Bind --> Handler[Callback Function]`,
+    relatedTopics: ['topic-03', 'topic-04'],
+  },
+  {
+    id: 'lego-07',
+    slug: 'line-trace',
+    title: 'Line Trace (Raycast)',
+    type: 'lego-piece',
+    pieceType: 'Physics',
+    tags: ['Collision', 'Combat', 'Hit Detection'],
+    summary: 'Raycast for hit detection, visibility checks, and targeting.',
+    codeSnippet: `FHitResult HitResult;
+FVector Start = GetActorLocation();
+FVector End = Start + GetActorForwardVector() * TraceDistance;
+
+FCollisionQueryParams Params;
+Params.AddIgnoredActor(this);
+
+bool bHit = GetWorld()->LineTraceSingleByChannel(
+    HitResult,
+    Start,
+    End,
+    ECC_Visibility,
+    Params
+);
+
+if (bHit)
+{
+    AActor* HitActor = HitResult.GetActor();
+}`,
+    explanation: 'Line traces cast a ray and return the first hit. Use collision channels for filtering.',
+    diagram: `flowchart LR
+    Start[Start Point] --> Ray[Ray]
+    Ray --> Hit{Hit?}
+    Hit -- Yes --> Result[HitResult]
+    Hit -- No --> Miss[No Hit]`,
+    relatedTopics: ['topic-03'],
+  },
+  {
+    id: 'lego-08',
+    slug: 'sphere-overlap',
+    title: 'Sphere Overlap Query',
+    type: 'lego-piece',
+    pieceType: 'Physics',
+    tags: ['Collision', 'Combat'],
+    summary: 'Find all actors within a radius for area effects and detection.',
+    codeSnippet: `TArray<FOverlapResult> Overlaps;
+FCollisionShape SphereShape = FCollisionShape::MakeSphere(500.0f);
+
+bool bHasOverlaps = GetWorld()->OverlapMultiByChannel(
+    Overlaps,
+    GetActorLocation(),
+    FQuat::Identity,
+    ECC_Pawn,
+    SphereShape
+);
+
+for (const FOverlapResult& Overlap : Overlaps)
+{
+    if (AActor* Actor = Overlap.GetActor())
+    {
+        // Process overlapping actor
+    }
+}`,
+    explanation: 'Overlap queries find all actors in a shape. Useful for area damage, AI perception.',
+    diagram: `flowchart TD
+    Center[Center Point] --> Sphere[Sphere Shape]
+    Sphere --> Query[Overlap Query]
+    Query --> Results[Array of Actors]`,
+    relatedTopics: ['topic-03', 'topic-06'],
+  },
+  {
+    id: 'lego-09',
+    slug: 'spawn-actor',
+    title: 'Spawn Actor Pattern',
+    type: 'lego-piece',
+    pieceType: 'Lifecycle',
+    tags: ['Lifecycle', 'Framework'],
+    summary: 'Dynamically spawn actors at runtime with proper initialization.',
+    codeSnippet: `// Spawn with transform
+FActorSpawnParameters SpawnParams;
+SpawnParams.Owner = this;
+SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+AProjectile* Projectile = GetWorld()->SpawnActor<AProjectile>(
+    ProjectileClass,
+    SpawnLocation,
+    SpawnRotation,
+    SpawnParams
+);`,
+    explanation: 'SpawnActor creates new actors at runtime. Use SpawnParams for ownership and collision handling.',
+    diagram: `flowchart TD
+    Class[Actor Class] --> Spawn[SpawnActor]
+    Transform[Location/Rotation] --> Spawn
+    Params[SpawnParams] --> Spawn
+    Spawn --> Instance[New Actor]`,
+    relatedTopics: ['topic-09', 'topic-10'],
+  },
+  {
+    id: 'lego-10',
+    slug: 'play-montage',
+    title: 'Play Animation Montage',
+    type: 'lego-piece',
+    pieceType: 'Animation',
+    tags: ['Animation', 'Montage', 'Combat'],
+    summary: 'Trigger animation montages for attacks, abilities, and reactions.',
+    codeSnippet: `// Get the animation instance
+UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+if (AnimInstance && AttackMontage)
+{
+    // Play montage and get duration
+    float Duration = AnimInstance->Montage_Play(AttackMontage, PlayRate);
+    
+    // Optionally jump to a specific section
+    AnimInstance->Montage_JumpToSection(FName("Combo2"), AttackMontage);
+}`,
+    explanation: 'Montages provide interruptible, section-based animations. Use for combat moves.',
+    diagram: `flowchart LR
+    Montage[Montage Asset] --> Play[Montage_Play]
+    Play --> Sections[Sections]
+    Sections --> Notifies[AnimNotifies]`,
+    relatedTopics: ['topic-04'],
+  },
+];
+
 // Collections (HTML pages)
 export const collections: ContentItem[] = [
   {
@@ -314,6 +608,7 @@ export const collections: ContentItem[] = [
 export const allContent: ContentItem[] = [
   ...topics,
   ...diagrams,
+  ...legoPieces,
   ...collections,
 ];
 

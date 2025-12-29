@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
-  Container,
   Typography,
   Breadcrumbs,
   Link,
-  Grid,
   Chip,
   CircularProgress,
 } from '@mui/material';
@@ -59,17 +57,17 @@ export const DiagramDetailPage = () => {
 
   if (!diagram) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 4 }}>
         <Typography variant="h4">Diagram not found</Typography>
-      </Container>
+      </Box>
     );
   }
 
   const relatedItems = getRelatedContent(diagram);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 3 }}>
+    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3, width: '100%' }}>
+      <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 2 }}>
         <Link component={RouterLink} to="/" color="inherit">
           Home
         </Link>
@@ -79,38 +77,39 @@ export const DiagramDetailPage = () => {
         <Typography color="text.primary">{diagram.title}</Typography>
       </Breadcrumbs>
 
-      <Grid container spacing={4}>
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Box sx={{ mb: 3 }}>
+      {/* Header section with title, tags, and related content inline */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 280 }}>
             <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
               {diagram.title}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <Chip label={diagram.category} size="small" color="primary" />
               <Chip label="diagram" size="small" variant="outlined" />
             </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-              {diagram.tags.map((tag) => (
-                <TagChip key={tag} tag={tag} />
-              ))}
+          </Box>
+          {relatedItems.length > 0 && (
+            <Box sx={{ flexShrink: 0 }}>
+              <RelatedContent items={relatedItems} />
             </Box>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              {diagram.summary}
-            </Typography>
-          </Box>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+          {diagram.tags.map((tag) => (
+            <TagChip key={tag} tag={tag} />
+          ))}
+        </Box>
+        <Typography variant="body1" color="text.secondary">
+          {diagram.summary}
+        </Typography>
+      </Box>
 
-          <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2 }}>
-            <MermaidDiagram chart={mermaidSource} id={diagram.id} />
-          </Box>
-        </Grid>
-
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Box sx={{ position: 'sticky', top: 80 }}>
-            <RelatedContent items={relatedItems} />
-          </Box>
-        </Grid>
-      </Grid>
-    </Container>
+      {/* Full-width diagram */}
+      <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2, width: '100%' }}>
+        <MermaidDiagram chart={mermaidSource} id={diagram.id} />
+      </Box>
+    </Box>
   );
 };
 

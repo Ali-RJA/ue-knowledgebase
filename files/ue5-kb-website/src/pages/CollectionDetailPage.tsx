@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
-  Container,
   Typography,
   Breadcrumbs,
   Link,
-  Grid,
   Chip,
   CircularProgress,
 } from '@mui/material';
@@ -59,17 +57,17 @@ export const CollectionDetailPage = () => {
 
   if (!collection) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 4 }}>
         <Typography variant="h4">Collection not found</Typography>
-      </Container>
+      </Box>
     );
   }
 
   const relatedItems = getRelatedContent(collection);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 3 }}>
+    <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3, width: '100%' }}>
+      <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 2 }}>
         <Link component={RouterLink} to="/" color="inherit">
           Home
         </Link>
@@ -79,39 +77,38 @@ export const CollectionDetailPage = () => {
         <Typography color="text.primary">{collection.title}</Typography>
       </Breadcrumbs>
 
-      <Grid container spacing={4}>
-        <Grid size={{ xs: 12, lg: relatedItems.length > 0 ? 8 : 12 }}>
-          <Box sx={{ mb: 3 }}>
+      {/* Header section with title, tags, and related content inline */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+          <Box sx={{ flex: 1, minWidth: 280 }}>
             <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
               {collection.title}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <Chip label="collection" size="small" variant="outlined" />
             </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-              {collection.tags.map((tag) => (
-                <TagChip key={tag} tag={tag} />
-              ))}
-            </Box>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              {collection.summary}
-            </Typography>
           </Box>
-
-          <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2 }}>
-            <HtmlContent html={htmlContent} />
-          </Box>
-        </Grid>
-
-        {relatedItems.length > 0 && (
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <Box sx={{ position: 'sticky', top: 80 }}>
+          {relatedItems.length > 0 && (
+            <Box sx={{ flexShrink: 0 }}>
               <RelatedContent items={relatedItems} />
             </Box>
-          </Grid>
-        )}
-      </Grid>
-    </Container>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+          {collection.tags.map((tag) => (
+            <TagChip key={tag} tag={tag} />
+          ))}
+        </Box>
+        <Typography variant="body1" color="text.secondary">
+          {collection.summary}
+        </Typography>
+      </Box>
+
+      {/* Full-width content */}
+      <Box sx={{ bgcolor: 'background.paper', p: 3, borderRadius: 2, width: '100%' }}>
+        <HtmlContent html={htmlContent} />
+      </Box>
+    </Box>
   );
 };
 

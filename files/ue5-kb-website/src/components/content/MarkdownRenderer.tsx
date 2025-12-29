@@ -3,6 +3,7 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
 import { Box, Typography, Link, Divider } from '@mui/material';
 import { CodeBlock } from './CodeBlock';
+import { MermaidDiagram } from './MermaidDiagram';
 import 'highlight.js/styles/github-dark.css';
 
 interface MarkdownRendererProps {
@@ -48,13 +49,19 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
           code: ({ className, children }) => {
             const match = /language-(\w+)/.exec(className || '');
             const codeString = String(children).replace(/\n$/, '');
+            const language = match ? match[1] : undefined;
             const inline = !className && !codeString.includes('\n');
+
+            // Render mermaid code blocks as diagrams
+            if (language === 'mermaid') {
+              return <MermaidDiagram chart={codeString} />;
+            }
 
             if (inline) {
               return <CodeBlock code={codeString} inline />;
             }
 
-            return <CodeBlock code={codeString} language={match ? match[1] : undefined} />;
+            return <CodeBlock code={codeString} language={language} />;
           },
           ul: ({ children }) => (
             <Box component="ul" sx={{ pl: 3, mb: 2 }}>

@@ -58,7 +58,11 @@ const menuItems = [
   },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export const Sidebar = ({ onNavigate }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>(['Topics']);
@@ -67,6 +71,11 @@ export const Sidebar = () => {
     setExpandedItems((prev) =>
       prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]
     );
+  };
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    onNavigate?.();
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -95,7 +104,7 @@ export const Sidebar = () => {
                   if (item.children) {
                     handleToggle(item.title);
                   } else {
-                    navigate(item.path);
+                    handleNavigation(item.path);
                   }
                 }}
                 selected={isActive(item.path)}
@@ -125,7 +134,7 @@ export const Sidebar = () => {
                   {item.children.map((child) => (
                     <ListItemButton
                       key={child.path}
-                      onClick={() => navigate(child.path)}
+                      onClick={() => handleNavigation(child.path)}
                       selected={isActive(child.path)}
                       sx={{
                         pl: 4,

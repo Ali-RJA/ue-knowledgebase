@@ -6,8 +6,6 @@ import {
   IconButton,
   Box,
   InputBase,
-  useMediaQuery,
-  useTheme as useMuiTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
@@ -22,9 +20,7 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const navigate = useNavigate();
-  const theme = useMuiTheme();
   const { mode, toggleTheme } = useThemeMode();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [searchValue, setSearchValue] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -37,17 +33,16 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   return (
     <AppBar position="sticky" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
       <Toolbar>
-        {isMobile && (
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="menu"
-            onClick={onMenuClick}
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-        )}
+        {/* Always show hamburger menu */}
+        <IconButton
+          edge="start"
+          color="inherit"
+          aria-label="menu"
+          onClick={onMenuClick}
+          sx={{ mr: 2 }}
+        >
+          <MenuIcon />
+        </IconButton>
 
         <Typography
           variant="h6"
@@ -59,37 +54,36 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             background: 'linear-gradient(90deg, #38bdf8, #a78bfa)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            mr: { xs: 2, md: 4 },
-            fontSize: { xs: '1.1rem', md: '1.5rem' },
+            mr: 3,
+            fontSize: '1.25rem',
           }}
         >
           UE5 KB
         </Typography>
 
-        {!isMobile && (
-          <Box
-            component="form"
-            onSubmit={handleSearch}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              bgcolor: 'action.hover',
-              borderRadius: 2,
-              px: 2,
-              py: 0.5,
-              flexGrow: 1,
-              maxWidth: 600,
-            }}
-          >
-            <SearchIcon sx={{ mr: 1, opacity: 0.6 }} />
-            <InputBase
-              placeholder="Search topics, tags, content..."
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              sx={{ flexGrow: 1 }}
-            />
-          </Box>
-        )}
+        {/* Search bar - always visible */}
+        <Box
+          component="form"
+          onSubmit={handleSearch}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            bgcolor: 'action.hover',
+            borderRadius: 2,
+            px: 2,
+            py: 0.5,
+            flexGrow: 1,
+            maxWidth: 500,
+          }}
+        >
+          <SearchIcon sx={{ mr: 1, opacity: 0.6 }} />
+          <InputBase
+            placeholder="Search..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            sx={{ flexGrow: 1 }}
+          />
+        </Box>
 
         <Box sx={{ flexGrow: 1 }} />
 
@@ -97,31 +91,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
         </IconButton>
       </Toolbar>
-
-      {isMobile && (
-        <Box sx={{ px: 2, pb: 1 }}>
-          <Box
-            component="form"
-            onSubmit={handleSearch}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              bgcolor: 'action.hover',
-              borderRadius: 2,
-              px: 2,
-              py: 0.5,
-            }}
-          >
-            <SearchIcon sx={{ mr: 1, opacity: 0.6 }} />
-            <InputBase
-              placeholder="Search..."
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              sx={{ flexGrow: 1 }}
-            />
-          </Box>
-        </Box>
-      )}
     </AppBar>
   );
 };

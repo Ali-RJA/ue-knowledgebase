@@ -33,11 +33,15 @@ export const tagColors: Record<string, string> = {
   'Montage': '#c026d3',
   'Ability': '#0ea5e9',
 
+  // Macro tags
+  'Macros': '#a855f7',
+
   // Architecture tags
   'Character': '#16a34a',
   'Lifecycle': '#059669',
   'Framework': '#2563eb',
   'ASC': '#7c3aed',
+  'Architecture': '#0891b2',
 };
 
 export const getTagColor = (tag: string): string => {
