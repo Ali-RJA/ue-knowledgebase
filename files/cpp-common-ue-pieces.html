@@ -418,6 +418,13 @@
         .cat-framework { border-top: 4px solid #ec4899; }
         .cat-ui { border-top: 4px solid #10b981; }
         .cat-cpp { border-top: 4px solid #64748b; }
+        .cat-anim { border-top: 4px solid #f43f5e; }
+        .cat-ai { border-top: 4px solid #d946ef; }
+        .cat-gas { border-top: 4px solid #6366f1; }
+        .cat-subsystems { border-top: 4px solid #14b8a6; }
+        .cat-input { border-top: 4px solid #8b5cf6; }
+        .cat-assets { border-top: 4px solid #f59e0b; }
+        .cat-audio { border-top: 4px solid #3b82f6; }
     </style>
 </head>
 <body>
@@ -444,6 +451,13 @@
             <button class="filter-btn" data-filter="cat-framework">Framework & Logic</button>
             <button class="filter-btn" data-filter="cat-ui">UI & Debug</button>
             <button class="filter-btn" data-filter="cat-cpp">C++ Mechanics</button>
+            <button class="filter-btn" data-filter="cat-anim">Animation</button>
+            <button class="filter-btn" data-filter="cat-ai">AI & Nav</button>
+            <button class="filter-btn" data-filter="cat-gas">Ability System</button>
+            <button class="filter-btn" data-filter="cat-subsystems">Subsystems</button>
+            <button class="filter-btn" data-filter="cat-input">Enhanced Input</button>
+            <button class="filter-btn" data-filter="cat-assets">Asset Management</button>
+            <button class="filter-btn" data-filter="cat-audio">Audio</button>
         </div>
     </div>
 
@@ -2808,6 +2822,1382 @@ Params.bReturnPhysicalMaterial = true;`,
 
         const additionalPieces = [
              {
+                id: 201,
+                title: "UAnimInstance C++ Base",
+                category: "cat-anim",
+                catName: "Animation",
+                graph: `flowchart TD
+                    Mesh[Skeletal Mesh] --> ABP[Anim Blueprint]
+                    ABP --"Inherits"--> CBase[C++ AnimInstance]
+                    CBase --"NativeUpdate"--> Vars[Update Speed/Pitch/Yaw]
+                    Vars --> Graph[AnimGraph Transitions]`,
+                code: `// --- MyAnimInstance.h ---
+UCLASS()
+class UMyAnimInstance : public UAnimInstance {
+    GENERATED_BODY()
+public:
+    virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+
+    UPROPERTY(BlueprintReadOnly, Category="Movement")
+    float GroundSpeed;
+};
+
+// --- MyAnimInstance.cpp ---
+void UMyAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
+    Super::NativeUpdateAnimation(DeltaSeconds);
+    if (APawn* Pawn = TryGetPawnOwner()) {
+        GroundSpeed = Pawn->GetVelocity().Size();
+    }
+}`,
+                explanation: `
+                    <h3>Driving Animation with C++</h3>
+                    <p>While the <code>AnimGraph</code> is great for visual blending, the logic that drives those transitions (calculating speed, falling state, combat mode) should live in a C++ base class for performance and organization.</p>
+                    
+                    <h4>Native Hooks</h4>
+                    <ul>
+                        <li><strong>NativeInitializeAnimation:</strong> The "BeginPlay" for animations. Good for caching pointers to the Character or Movement Component.</li>
+                        <li><strong>NativeUpdateAnimation:</strong> The "Tick" for animations. Use this to update variables that the AnimGraph uses to switch between states.</li>
+                    </ul>
+                `,
+                concepts: ["AnimInstance Lifecycle", "Data-Driven Animation", "Performance Optimization"],
+                practices: ["Cache the Pawn pointer", "Keep logic in C++, visuals in BP", "Avoid complex math in the Update tick"]
+            },
+            {
+                id: 202,
+                title: "Montage_Play & Delegates",
+                category: "cat-anim",
+                catName: "Animation",
+                graph: `flowchart LR
+                    Logic[Attack Input] --> Play[Montage_Play]
+                    Play --> Wait{Wait for End}
+                    Wait --"OnCompleted"--> Reset[Reset State]
+                    Wait --"OnInterrupted"--> Fail[Handle Stun/Cancel]`,
+                code: `// Triggering an attack montage and reacting to its end
+void AMyCharacter::PerformAttack() {
+    UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+    if (AnimInst && AttackMontage) {
+        AnimInst->Montage_Play(AttackMontage);
+
+        FOnMontageEnded EndDelegate;
+        EndDelegate.BindUObject(this, &AMyCharacter::OnAttackFinished);
+        AnimInst->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+    }
+}
+
+void AMyCharacter::OnAttackFinished(UAnimMontage* Montage, bool bInterrupted) {
+    bIsAttacking = false;
+}`,
+                explanation: `
+                    <h3>Orchestrating Actions</h3>
+                    <p>Montages allow you to play specific animations (like an attack or a reload) on top of your character's state machine. Using <strong>Delegates</strong> allows your gameplay code to know exactly when the animation finishes.</p>
+                    
+                    <h4>Handling Interruptions</h4>
+                    <p>The <code>bInterrupted</code> boolean is critical. If your player gets hit and stunned while attacking, the montage will be interrupted. Your code needs to know this to properly reset state or stop SFX.</p>
+                `,
+                concepts: ["Animation Montages", "Dynamic Delegates", "State Synchronization"],
+                practices: ["Always handle bInterrupted", "Don't hardcode duration, use the delegate", "Check if AnimInstance is valid"]
+            },
+            {
+                id: 203,
+                title: "UAIPerceptionComponent",
+                category: "cat-ai",
+                catName: "AI",
+                graph: `flowchart TD
+                    Perc[Perception Component] --> Sight[Sight Sense]
+                    Perc --> Hear[Hearing Sense]
+                    Sight --"Detected"--> Event[OnTargetPerceptionUpdated]
+                    Event --> BlackB[Update Blackboard]`,
+                code: `// --- MyAIController.h ---
+UPROPERTY(VisibleAnywhere)
+UAIPerceptionComponent* PerceptionComp;
+
+UAISenseConfig_Sight* SightConfig;
+
+// --- MyAIController.cpp ---
+AMyAIController::AMyAIController() {
+    PerceptionComp = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
+    SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
+    
+    SightConfig->SightRadius = 2000.f;
+    SightConfig->LoseSightRadius = 2500.f;
+    SightConfig->PeripheralVisionAngleDegrees = 90.f;
+    
+    PerceptionComp->ConfigureSense(*SightConfig);
+    PerceptionComp->SetDominantSense(SightConfig->GetSenseImplementation());
+}`,
+                explanation: `
+                    <h3>AI Senses</h3>
+                    <p>The AIPerception system is the modern way NPCs "see" and "hear" the world. It is much more efficient than doing manual line traces from the AI's eyes every frame.</p>
+                    
+                    <h4>How it works</h4>
+                    <p>The component manages various "Senses". When a "Stimulus" (like a player walking into view) is detected, it triggers the <code>OnTargetPerceptionUpdated</code> delegate. This allows your AI to react only when something actually changes.</p>
+                `,
+                concepts: ["AI Senses", "Stimulus Handling", "NPC Awareness"],
+                practices: ["Set a Dominant Sense", "Use LoseSightRadius for 'chase' behavior", "Configure collision channels for sight"]
+            },
+            {
+                id: 204,
+                title: "UBTTaskNode (Custom Task)",
+                category: "cat-ai",
+                catName: "AI",
+                graph: `flowchart LR
+                    BT[Behavior Tree] --"Execute"--> Task[C++ Task]
+                    Task --"Success"--> BT
+                    Task --"Failure"--> BT`,
+                code: `// --- BTTask_FindLocation.h ---
+UCLASS()
+class UBTTask_FindLocation : public UBTTaskNode {
+    GENERATED_BODY()
+    virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+};
+
+// --- BTTask_FindLocation.cpp ---
+EBTNodeResult::Type UBTTask_FindLocation::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) {
+    AAIController* AIController = OwnerComp.GetAIOwner();
+    APawn* AIPawn = AIController->GetPawn();
+    
+    FVector RandomLoc = UNavigationSystemV1::GetRandomReachablePointInRadius(GetWorld(), AIPawn->GetActorLocation(), 1000.f);
+    
+    OwnerComp.GetBlackboardComponent()->SetValueAsVector(FName("TargetLoc"), RandomLoc);
+    return EBTNodeResult::Succeeded;
+}`,
+                explanation: `
+                    <h3>Behavior Tree Extensions</h3>
+                    <p>While Behavior Trees are usually edited visually, the actual logic for complex tasks (like finding a tactical position or pathfinding) is best written in C++ for speed and reusability.</p>
+                    
+                    <h4>Task Lifecycle</h4>
+                    <p>The <code>ExecuteTask</code> function is the entry point. You must return a result: <code>Succeeded</code>, <code>Failed</code>, or <code>InProgress</code> (for tasks that take time, like moving).</p>
+                `,
+                concepts: ["Behavior Trees", "Blackboard Integration", "Navigation Queries"],
+                practices: ["Keep tasks modular", "Use Blackboard Keys for data", "Check for valid Pawn/Controller"]
+            },
+            {
+                id: 210,
+                title: "ASC Initialization (GAS)",
+                category: "cat-gas",
+                catName: "GAS",
+                graph: `flowchart TD
+                    Actor[Player Character] --"Owns"--> ASC[Ability System Component]
+                    ASC --"Init"--> ActorInfo[AbilityActorInfo]
+                    ActorInfo --"Pawn"--> Avatar[Avatar Actor]
+                    ActorInfo --"Controller"--> Owner[Owner Actor]`,
+                code: `// --- MyCharacter.cpp ---
+void AMyCharacter::PossessedBy(AController* NewController) {
+    Super::PossessedBy(NewController);
+    
+    // Server-side GAS Init
+    if (AbilitySystemComponent) {
+        AbilitySystemComponent->InitAbilityActorInfo(this, this);
+        InitializeAttributes(); // Custom helper
+        AddDefaultAbilities();  // Custom helper
+    }
+}
+
+void AMyCharacter::OnRep_PlayerState() {
+    Super::OnRep_PlayerState();
+    
+    // Client-side GAS Init
+    if (AbilitySystemComponent) {
+        AbilitySystemComponent->InitAbilityActorInfo(this, this);
+    }
+}`,
+                explanation: `
+                    <h3>The GAS Foundation</h3>
+                    <p>The <strong>Ability System Component (ASC)</strong> is the brain of the Gameplay Ability System. Before you can use any abilities or attributes, you must initialize the <code>AbilityActorInfo</code>.</p>
+                    
+                    <h4>Owner vs Avatar</h4>
+                    <p>In most single-player games, the Character is both the <strong>Owner</strong> (the object that holds the data) and the <strong>Avatar</strong> (the physical representation in the world). However, in many professional projects, the ASC lives on the <code>PlayerState</code> so it persists even if the Pawn is destroyed and respawned.</p>
+                `,
+                concepts: ["Ability System Component", "Owner vs Avatar", "GAS Lifecycle"],
+                practices: ["Init on both Server and Client", "Call InitAbilityActorInfo whenever Pawn is possessed", "Keep ASC on PlayerState for persistence"]
+            },
+            {
+                id: 211,
+                title: "UAttributeSet Definition",
+                category: "cat-gas",
+                catName: "GAS",
+                graph: `flowchart LR
+                    Effect[Gameplay Effect] --"Modifies"--> Attr[Attribute]
+                    Attr --"Health"--> UI[Health Bar]
+                    Attr --"Stamina"--> Move[Sprinting Logic]`,
+                code: `// Use the standard ACCESSORS macro for GAS
+#define ATTRIBUTE_ACCESSORS(ClassName, PropertyName) \\
+	GAMEPLAYATTRIBUTE_PROPERTY_GETTER(ClassName, PropertyName) \\
+	GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \\
+	GAMEPLAYATTRIBUTE_VALUE_SETTER(PropertyName) \\
+	GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
+
+UCLASS()
+class UMyAttributeSet : public UAttributeSet {
+    GENERATED_BODY()
+public:
+    UPROPERTY(BlueprintReadOnly, Category="Attributes")
+    FGameplayAttributeData Health;
+    ATTRIBUTE_ACCESSORS(UMyAttributeSet, Health)
+    
+    virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
+};`,
+                explanation: `
+                    <h3>Defining Actor Stats</h3>
+                    <p>AttributeSets are where you define the numerical values of your character, such as Health, Mana, or Strength. GAS handles the complex math of "Base Value" vs "Current Value" (after buffs/debuffs) automatically.</p>
+                    
+                    <h4>PostGameplayEffectExecute</h4>
+                    <p>This is the most important function in an AttributeSet. It is called after an effect (like damage or healing) has been applied. This is where you "Clamp" the health so it doesn't go below zero or above the max.</p>
+                `,
+                concepts: ["Gameplay Attributes", "Data Clamping", "Stat Management"],
+                practices: ["Use the ATTRIBUTE_ACCESSORS macro", "Only define numerical stats", "Clamp values in PostGameplayEffectExecute"]
+            },
+            {
+                id: 212,
+                title: "UGameInstanceSubsystem",
+                category: "cat-subsystems",
+                catName: "Subsystems",
+                graph: `flowchart TD
+                    Boot[Game Start] --> Auto[Auto-Created Subsystem]
+                    Level1[Level 1] --"Access"--> Auto
+                    Level2[Level 2] --"Access"--> Auto
+                    Auto --"Data"--> Persistent[Inventory / Save State]`,
+                code: `// --- SaveSubsystem.h ---
+UCLASS()
+class USaveSubsystem : public UGameInstanceSubsystem {
+    GENERATED_BODY()
+public:
+    void SaveGame();
+    void LoadGame();
+    
+    UPROPERTY()
+    TMap<FString, int32> PlayerInventory;
+};
+
+// --- Usage ---
+USaveSubsystem* SaveSys = GetGameInstance()->GetSubsystem<USaveSubsystem>();
+SaveSys->PlayerInventory.Add("HealthPotion", 5);`,
+                explanation: `
+                    <h3>Global Persistent Logic</h3>
+                    <p><code>UGameInstanceSubsystem</code> is the gold standard for global managers that need to exist from the moment the game starts until it closes. They automatically survive level transitions.</p>
+                    
+                    <h4>Why not GameInstance?</h4>
+                    <p>Instead of one massive <code>UGameInstance</code> class with 5000 lines of code, you can have 10 small, focused subsystems (SaveSubsystem, SoundSubsystem, AchievementSubsystem). This makes your code much cleaner and easier to maintain.</p>
+                `,
+                concepts: ["Persistence", "Modular Managers", "Engine Lifecycles"],
+                practices: ["Use for Save/Load logic", "Avoid logic that depends on a specific World", "Clean up delegates in Deinitialize()"]
+            },
+            {
+                id: 213,
+                title: "UWorldSubsystem",
+                category: "cat-subsystems",
+                catName: "Subsystems",
+                graph: `flowchart TD
+                    Load[Level Load] --> Sub[World Subsystem]
+                    Sub --> Manager[Level Score / Timer]
+                    Unload[Level Unload] --> Destroy[Subsystem Destroyed]`,
+                code: `// --- ScoreSubsystem.h ---
+UCLASS()
+class UScoreSubsystem : public UWorldSubsystem {
+    GENERATED_BODY()
+public:
+    void AddScore(int32 Amount) { CurrentScore += Amount; }
+    
+    UPROPERTY()
+    int32 CurrentScore = 0;
+};
+
+// --- Usage ---
+UScoreSubsystem* Score = GetWorld()->GetSubsystem<UScoreSubsystem>();
+Score->AddScore(100);`,
+                explanation: `
+                    <h3>Level-Specific Managers</h3>
+                    <p>Unlike GameInstance subsystems, a <code>UWorldSubsystem</code> is tied to the lifecycle of a single level (World). When you change levels, the old subsystem is destroyed and a new one is created for the next world.</p>
+                    
+                    <h4>Common Uses</h4>
+                    <p>Ideal for things that only matter while a level is active: Spawn Managers, Objective Trackers, or Scoreboards for a specific match.</p>
+                `,
+                concepts: ["Level Lifecycle", "World Context", "Automatic Instantiation"],
+                practices: ["Use for level-specific logic", "Don't store data here that needs to persist between levels", "Access via GetWorld()"]
+            },
+            {
+                id: 220,
+                title: "Enhanced Input Binding",
+                category: "cat-input",
+                catName: "Input",
+                graph: `flowchart LR
+                    IA[Input Action] --"Triggered"--> Func[C++ Function]
+                    P[Player] --"Presses Key"--> IA`,
+                code: `// --- MyCharacter.h ---
+UPROPERTY(EditAnywhere, Category="Input")
+UInputAction* MoveAction;
+
+// --- MyCharacter.cpp ---
+void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
+    Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+    if (UEnhancedInputComponent* EIP = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) {
+        EIP->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyCharacter::Move);
+    }
+}
+
+void AMyCharacter::Move(const FInputActionValue& Value) {
+    FVector2D MovementVector = Value.Get<FVector2D>();
+    AddMovementInput(GetActorForwardVector(), MovementVector.Y);
+    AddMovementInput(GetActorRightVector(), MovementVector.X);
+}`,
+                explanation: `
+                    <h3>Binding Actions in UE5</h3>
+                    <p>Enhanced Input replaces the old <code>BindAction</code> and <code>BindAxis</code> with a unified system. It uses <code>FInputActionValue</code> to handle everything from simple booleans (buttons) to 2D vectors (thumbsticks).</p>
+                    
+                    <h4>Trigger Events</h4>
+                    <ul>
+                        <li><strong>Started:</strong> Fired once when you press the button.</li>
+                        <li><strong>Triggered:</strong> Fired every frame while the button is held (useful for movement).</li>
+                        <li><strong>Completed:</strong> Fired when you release the button.</li>
+                    </ul>
+                `,
+                concepts: ["Input Binding", "Action Values", "Unified Input"],
+                practices: ["Use CastChecked for safety", "Keep movement logic in Triggered", "Use Started for one-off actions like Jump"]
+            },
+            {
+                id: 221,
+                title: "TSoftObjectPtr (Lazy Loading)",
+                category: "cat-assets",
+                catName: "Assets",
+                graph: `flowchart TD
+                    Hard[Hard Pointer] --"Loads"--> Memory[RAM Usage High]
+                    Soft[Soft Pointer] --"Wait"--> MemoryLow[RAM Usage Low]
+                    Soft --"Async Load"--> RAM[Object Ready]`,
+                code: `// --- MyActor.h ---
+// Doesn't load the mesh when the actor is created
+UPROPERTY(EditAnywhere, Category="Visuals")
+TSoftObjectPtr<UStaticMesh> LazyMesh;
+
+// --- MyActor.cpp ---
+void AMyActor::LoadAsset() {
+    if (LazyMesh.IsPending()) {
+        UStaticMesh* Loaded = LazyMesh.LoadSynchronous();
+        MeshComp->SetStaticMesh(Loaded);
+    }
+}`,
+                explanation: `
+                    <h3>Smart Memory Management</h3>
+                    <p>Usually, when you use a raw pointer (<code>UStaticMesh*</code>), Unreal loads that asset into memory the moment the actor exists. This is called "Hard Loading" and can lead to massive RAM usage if you have many variations of an item.</p>
+                    
+                    <h4>Soft Pointers</h4>
+                    <p><code>TSoftObjectPtr</code> stores the <strong>Path</strong> to the asset instead of the asset itself. The asset is only loaded when you explicitly tell it to. This is essential for Open World games and complex inventory systems.</p>
+                `,
+                concepts: ["Memory Footprint", "Lazy Loading", "Asset Paths"],
+                practices: ["Use for large assets (Meshes, Textures)", "Use for optional variations", "Combine with Async Loading for best results"]
+            },
+            {
+                id: 222,
+                title: "UAudioComponent Management",
+                category: "cat-audio",
+                catName: "Audio",
+                graph: `flowchart LR
+                    Comp[Audio Component] --"SetParam"--> MS[Metasound / Cue]
+                    Logic[C++ Logic] --"Play/Stop"--> Comp
+                    Comp --"Event"--> Logic`,
+                code: `// --- MyActor.cpp ---
+AMyActor::AMyActor() {
+    AudioComp = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComp"));
+    AudioComp->bAutoActivate = false;
+}
+
+void AMyActor::PlayEngineSound(float RPM) {
+    if (!AudioComp->IsPlaying()) {
+        AudioComp->Play();
+    }
+    // Update real-time parameters
+    AudioComp->SetFloatParameter(FName("EngineRPM"), RPM);
+}`,
+                explanation: `
+                    <h3>Dynamic Soundscapes</h3>
+                    <p>While <code>PlaySoundAtLocation</code> is good for one-off explosions, use <code>UAudioComponent</code> when you need to control a sound over time (like an engine idling or a looping ambient wind).</p>
+                    
+                    <h4>Parameters</h4>
+                    <p>Modern UE5 audio (especially <strong>Metasounds</strong>) allows you to send data directly from C++ to the sound engine. You can change pitch, volume, or even complex synth parameters frame-by-frame based on gameplay data.</p>
+                `,
+                concepts: ["Continuous Audio", "Metasound Parameters", "Audio Control"],
+                practices: ["Disable bAutoActivate for manually controlled sounds", "Use FName for parameter keys", "Check IsPlaying() before starting"]
+            },
+            {
+                id: 230,
+                title: "meta=(MakeEditWidget)",
+                category: "cat-macros",
+                catName: "Macros",
+                graph: `flowchart LR
+                    Prop[FVector Property] --"meta tag"--> Widget[3D Transformation Widget]
+                    Widget --"Move in Editor"--> Value[Update Property Value]`,
+                code: `// .h
+UPROPERTY(EditAnywhere, Category="Offsets", meta=(MakeEditWidget = "true"))
+FVector TargetLocation;
+
+// .cpp - Using it
+FVector WorldTarget = GetTransform().TransformPosition(TargetLocation);`,
+                explanation: `
+                    <h3>Visualizing Relative Offsets</h3>
+                    <p>When you have an <code>FVector</code> that represents a relative position (like a patrol point or a particle offset), it's hard to guess the coordinates. <code>MakeEditWidget</code> adds a clickable diamond icon in the editor world viewport.</p>
+                    
+                    <h4>Workflow</h4>
+                    <p>Designers can simply drag the widget to the desired spot, and the C++ variable will automatically update with the correct local coordinates. This is far superior to typing numbers manually in the details panel.</p>
+                `,
+                concepts: ["Editor Experience", "Relative Offsets", "Viewport Widgets"],
+                practices: ["Use for patrol points", "Use for spawning offsets", "Remember the value is LOCAL to the actor"]
+            },
+            {
+                id: 231,
+                title: "WITH_EDITOR (Editor-Only Code)",
+                category: "cat-macros",
+                catName: "Macros",
+                graph: `flowchart TD
+                    Build[Compiler] --"Is Editor Build?"--> Check{Check}
+                    Check --"Yes"--> Include[Compile Editor Logic]
+                    Check --"No"--> Skip[Strip Code for Performance]`,
+                code: `#if WITH_EDITOR
+virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
+void AMyActor::SomeLogic() {
+#if WITH_EDITOR
+    DrawDebugSphere(GetWorld(), GetActorLocation(), 100.f, 12, FColor::Red);
+#endif
+}`,
+                explanation: `
+                    <h3>Stripping Development Bloat</h3>
+                    <p>A lot of the code you write (debug drawings, editor UI, property validation) is only needed while you are making the game. <code>WITH_EDITOR</code> ensures that this code is completely removed from the final "Shipped" version of your game.</p>
+                    
+                    <h4>Why it matters</h4>
+                    <p>This keeps your final executable small and prevents players from accidentally triggering debug functions. It also allows you to use classes (like <code>UnrealEd</code>) that aren't even included in the shipped game engine.</p>
+                `,
+                concepts: ["Pre-processor Macros", "Build Configurations", "Optimization"],
+                practices: ["Wrap all debug drawing", "Wrap PostEditChangeProperty", "Never put gameplay-critical logic inside WITH_EDITOR"]
+            },
+            {
+                id: 232,
+                title: "OnConstruction (C++ Script)",
+                category: "cat-lifecycle",
+                catName: "Lifecycle",
+                graph: `flowchart LR
+                    Move[Move Actor in Level] --> OnCons[OnConstruction]
+                    OnCons --> Update[Update Meshes/Lights/Materials]
+                    Update --> Visual[Immediate Feedback]`,
+                code: `// --- MyActor.cpp ---
+void AMyActor::OnConstruction(const FTransform& Transform) {
+    Super::OnConstruction(Transform);
+
+    // Dynamic procedural setup
+    DynamicMaterial = CreateDynamicMaterialInstance(BaseMaterial);
+    DynamicMaterial->SetVectorParameterValue(TEXT("Color"), TeamColor);
+    
+    MeshComp->SetMaterial(0, DynamicMaterial);
+}`,
+                explanation: `
+                    <h3>Live Editor Updates</h3>
+                    <p><code>OnConstruction</code> is the C++ equivalent of the <strong>Construction Script</strong> in Blueprints. It runs whenever you move the actor or change a property in the editor, providing instant visual feedback.</p>
+                    
+                    <h4>Difference from Constructor</h4>
+                    <p>The Constructor only runs once when the object is first created. <code>OnConstruction</code> runs every time the actor is modified. This makes it the perfect place for "procedural" setup, like changing a character's clothing based on an enum.</p>
+                `,
+                concepts: ["Construction Script", "Procedural Generation", "Editor Feedback"],
+                practices: ["Keep it efficient (runs on every drag)", "Use for visual-only setup", "Always call Super::OnConstruction"]
+            },
+            {
+                id: 233,
+                title: "PostInitializeComponents",
+                category: "cat-lifecycle",
+                catName: "Lifecycle",
+                graph: `flowchart TD
+                    Constructor[Constructor] --> PreInit[PreInitializeComponents]
+                    PreInit --> CompInit[Components Initialized]
+                    CompInit --> PostInit[PostInitializeComponents]
+                    PostInit --> BeginPlay[BeginPlay]`,
+                code: `// --- MyActor.cpp ---
+void AMyActor::PostInitializeComponents() {
+    Super::PostInitializeComponents();
+
+    // All components are now valid and initialized.
+    // Perfect place to bind delegates between components.
+    if (HealthComp && UIComp) {
+        HealthComp->OnHealthChanged.AddDynamic(UIComp, &UMyUIComp::UpdateBar);
+    }
+}`,
+                explanation: `
+                    <h3>Cross-Component Wiring</h3>
+                    <p>When you create components in the Constructor, they aren't "ready" yet. <code>PostInitializeComponents</code> is the lifecycle hook that fires after every component on the actor has been fully initialized but <em>before</em> <code>BeginPlay</code> runs.</p>
+                    
+                    <h4>Why use it?</h4>
+                    <p>It's the safest place to cache references to your own components and bind their delegates to each other. By the time <code>BeginPlay</code> runs, your components are already "talking" to each other, preventing many initialization order bugs.</p>
+                `,
+                concepts: ["Initialization Order", "Component Communication", "Lifecycle Synchronization"],
+                practices: ["Always call Super first", "Avoid world-dependent logic (use BeginPlay for that)", "Validate component pointers before binding"]
+            },
+            {
+                id: 234,
+                title: "OverlapMultiByChannel",
+                category: "cat-phys",
+                catName: "Physics",
+                graph: `flowchart LR
+                    Center[Sphere Center] --"Radius"--> Vol[Detection Volume]
+                    Vol --"Find All"--> List[Array of Overlapping Actors]`,
+                code: `TArray<FOverlapResult> Overlaps;
+FCollisionShape Sphere = FCollisionShape::MakeSphere(500.f);
+FCollisionQueryParams Params;
+Params.AddIgnoredActor(this);
+
+bool bHit = GetWorld()->OverlapMultiByChannel(
+    Overlaps,
+    GetActorLocation(),
+    FQuat::Identity,
+    ECC_WorldDynamic,
+    Sphere,
+    Params
+);
+
+for (const FOverlapResult& Result : Overlaps) {
+    AActor* OverlappedActor = Result.GetActor();
+    // Deal AoE damage...
+}`,
+                explanation: `
+                    <h3>Area of Effect Detection</h3>
+                    <p>Unlike a Line Trace which only finds what's directly in front of you, <code>OverlapMultiByChannel</code> finds <strong>every</strong> actor within a specific shape (Sphere, Box, or Capsule).</p>
+                    
+                    <h4>Performance</h4>
+                    <p>Finding many actors at once is more expensive than a single trace. Use this for one-off events like an explosion or a "radar pulse", but avoid doing it every frame in <code>Tick</code> if you can use overlap events on a component instead.</p>
+                `,
+                concepts: ["AoE Logic", "Physics Queries", "Collision Channels"],
+                practices: ["Ignore 'this' to avoid hitting yourself", "Use for explosions or proximity checks", "Limit the frequency of multi-overlaps"]
+            },
+            {
+                id: 235,
+                title: "WidgetComponent (3D UI)",
+                category: "cat-ui",
+                catName: "UI",
+                graph: `flowchart LR
+                    Actor[Enemy Character] --> WC[Widget Component]
+                    WC --"Screen/World Space"--> UI[Floating Health Bar]`,
+                code: `// --- MyCharacter.cpp ---
+AMyCharacter::AMyCharacter() {
+    HealthWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthWidget"));
+    HealthWidget->SetupAttachment(RootComponent);
+    
+    // Set to Screen space so it always faces the player
+    HealthWidget->SetWidgetSpace(EWidgetSpace::Screen);
+    HealthWidget->SetDrawSize(FVector2D(100.f, 20.f));
+}`,
+                explanation: `
+                    <h3>Floating Head-Up Displays</h3>
+                    <p>The <code>WidgetComponent</code> is how you attach 2D UMG widgets to 3D actors in the world. This is most commonly used for floating health bars, nameplates, or interactive computer screens.</p>
+                    
+                    <h4>Screen vs World Space</h4>
+                    <ul>
+                        <li><strong>Screen Space:</strong> The UI stays the same size regardless of distance and always faces the camera (perfect for Health Bars).</li>
+                        <li><strong>World Space:</strong> The UI is treated like a physical object in the level (perfect for an in-game terminal).</li>
+                    </ul>
+                `,
+                concepts: ["UMG in 3D", "Space Transformations", "Billboarding"],
+                practices: ["Use Screen space for readability", "Optimize Tick frequency for distant widgets", "Use SetWidgetClass in the constructor"]
+            },
+            {
+                id: 236,
+                title: "TSet (Unique Collections)",
+                category: "cat-data",
+                catName: "Data",
+                graph: `flowchart LR
+                    Input[Items: A, B, A, C] --> Set[TSet]
+                    Set --> Output[Result: A, B, C]
+                    Set --"O(1)"--> Fast[Lightning Fast Search]`,
+                code: `TSet<AActor*> EncounteredEnemies;
+
+void AMyChar::OnSeeEnemy(AActor* Enemy) {
+    // Only adds if it's not already in the list
+    EncounteredEnemies.Add(Enemy);
+    
+    // Lightning fast lookup
+    if (EncounteredEnemies.Contains(SpecialBoss)) {
+        UE_LOG(LogTemp, Warning, TEXT("The Boss has been spotted!"));
+    }
+}`,
+                explanation: `
+                    <h3>Speed and Uniqueness</h3>
+                    <p>While <code>TArray</code> is the most common container, <code>TSet</code> is superior when you need to ensure every item is unique and you need to search for items extremely fast.</p>
+                    
+                    <h4>Hashing</h4>
+                    <p>Behind the scenes, <code>TSet</code> uses a "Hash Table". This means checking if an item exists takes the same amount of time whether you have 10 items or 10,000 items (O(1) complexity), whereas <code>TArray</code> gets slower as it grows.</p>
+                `,
+                concepts: ["Hash Tables", "O(1) Complexity", "Uniqueness Enforcement"],
+                practices: ["Use for 'Already Seen' lists", "Use for large collections you search often", "Note: TSet does not preserve order"]
+            },
+            {
+                id: 237,
+                title: "TObjectPtr (Modern Pointers)",
+                category: "cat-cpp",
+                catName: "C++",
+                graph: `flowchart LR
+                    Old[UObject* Raw] --"Evolution"--> New[TObjectPtr]
+                    New --"Optional"--> Access[Lazy Access / Tracking]`,
+                code: `// --- Modern UE5 Header ---
+UPROPERTY(EditAnywhere, Category="Mesh")
+TObjectPtr<UStaticMesh> MainMesh;
+
+void AMyActor::BeginPlay() {
+    // Usage is identical to raw pointers
+    if (MainMesh) {
+        float Size = MainMesh->GetBounds().SphereRadius;
+    }
+}`,
+                explanation: `
+                    <h3>The UE5 Standard</h3>
+                    <p>In Unreal Engine 5, <code>TObjectPtr</code> has replaced raw pointers (<code>UObject*</code>) for class properties. While they behave like raw pointers in most cases, they allow the engine to perform "Lazy Loading" and better access tracking in editor builds.</p>
+                    
+                    <h4>When to use?</h4>
+                    <p>You should use <code>TObjectPtr</code> for any <code>UPROPERTY</code> member variables in your header files. Inside function bodies (local variables), you should still use raw pointers for simplicity and performance.</p>
+                `,
+                concepts: ["Pointer Wrapping", "Memory Tracking", "UE5 Coding Standards"],
+                practices: ["Use for all UPROPERTY pointers", "Use raw pointers for local variables", "Use .Get() if you need the raw pointer explicitly"]
+            },
+            {
+                id: 240,
+                title: "UAnimNotify (C++)",
+                category: "cat-anim",
+                catName: "Animation",
+                graph: `flowchart LR
+                    Anim[Animation Frame] --> Notify[C++ Notify]
+                    Notify --> VFX[Spawn Blood/Dust]
+                    Notify --> SFX[Play Footstep]`,
+                code: `// --- MyAnimNotify.h ---
+UCLASS()
+class UMyAnimNotify : public UAnimNotify {
+    GENERATED_BODY()
+    virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
+};
+
+// --- MyAnimNotify.cpp ---
+void UMyAnimNotify::Notify(USkeletalMeshComponent* MeshComp, ...) {
+    if (MeshComp && MeshComp->GetOwner()) {
+        // Trigger gameplay logic or visuals
+        SpawnEffectAtSocket(MeshComp, TEXT("Foot_R"));
+    }
+}`,
+                explanation: `
+                    <h3>Frame-Perfect Triggers</h3>
+                    <p>AnimNotifies are markers placed in an animation that trigger code at a specific frame. While you can create them in Blueprints, writing them in C++ is more performant and allows for complex logic shared across many characters.</p>
+                    
+                    <h4>Common Uses</h4>
+                    <p>Footstep sounds, particle bursts, weapon trails, or triggering specific gameplay states (like "Can branch to next combo") at the exact moment of a swing.</p>
+                `,
+                concepts: ["Animation Events", "Visual/Gameplay Sync", "Performance"],
+                practices: ["Avoid heavy logic in Notify", "Check for valid Mesh/Owner", "Use for one-shot effects"]
+            },
+            {
+                id: 241,
+                title: "UAnimNotifyState (Windows)",
+                category: "cat-anim",
+                catName: "Animation",
+                graph: `flowchart LR
+                    Start[Start Frame] --> Active[Active State]
+                    Active --> End[End Frame]
+                    Active --"Every Frame"--> Logic[Trace for Hits]`,
+                code: `// --- MyNotifyState.cpp ---
+void UMyNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, ...) {
+    // Start tracing/effects
+}
+
+void UMyNotifyState::NotifyTick(USkeletalMeshComponent* MeshComp, ...) {
+    // Logic that runs every frame of the window
+}
+
+void UMyNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, ...) {
+    // Stop tracing/cleanup
+}`,
+                explanation: `
+                    <h3>State Windows</h3>
+                    <p>Unlike a standard Notify which fires once, <code>UAnimNotifyState</code> defines a <strong>Duration</strong> (a window of time). It has three hooks: Begin, Tick, and End.</p>
+                    
+                    <h4>Combat Hitboxes</h4>
+                    <p>This is the industry-standard way to handle melee hitboxes. You start the trace in <code>NotifyBegin</code> and stop it in <code>NotifyEnd</code>, ensuring the weapon only deals damage during the "active" part of the swing.</p>
+                `,
+                concepts: ["Duration Notifies", "Melee Logic", "Component Activation"],
+                practices: ["Use for hitbox windows", "Use for continuous VFX (e.g. flames)", "Clean up state in NotifyEnd"]
+            },
+            {
+                id: 242,
+                title: "UNavigationSystemV1",
+                category: "cat-ai",
+                catName: "AI",
+                graph: `flowchart LR
+                    Raw[Point in Level] --"Project"--> Nav[Valid Point on NavMesh]
+                    Nav --"Query"--> Path[Optimal Path to Player]`,
+                code: `UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+
+if (NavSys) {
+    FNavLocation Result;
+    bool bFound = NavSys->GetRandomReachablePointInRadius(
+        GetActorLocation(), 
+        2000.f, 
+        Result
+    );
+    
+    if (bHit) {
+        FVector TargetPoint = Result.Location;
+    }
+}`,
+                explanation: `
+                    <h3>Navigating the World</h3>
+                    <p>In UE5, AI doesn't just "move" to a location; it needs to know if that location is reachable on the <strong>NavMesh</strong>. The <code>UNavigationSystemV1</code> is the gateway to these queries.</p>
+                    
+                    <h4>Smart Pathfinding</h4>
+                    <p>You can use the navigation system to find random points for patrolling, check if a player is standing on the ground (ProjectPointToNavigation), or calculate the total distance of a path before the AI even starts moving.</p>
+                `,
+                concepts: ["Pathfinding", "NavMesh Queries", "Spatial Reasoning"],
+                practices: ["Always check if NavSys is valid", "Use ProjectPointToNavigation to snap points to ground", "Radius queries are great for 'Wander' logic"]
+            },
+            {
+                id: 243,
+                title: "UGameplayAbility (C++)",
+                category: "cat-gas",
+                catName: "GAS",
+                graph: `flowchart TD
+                    Act[ActivateAbility] --> Check[Check Costs/Cooldown]
+                    Check --"Pass"--> Logic[Gameplay Logic]
+                    Logic --"Wait"--> Task[Ability Task]
+                    Task --"Done"--> End[EndAbility]`,
+                code: `// --- MyAbility.cpp ---
+void UMyAbility::ActivateAbility(...) {
+    if (!CommitAbility(Handle, ActorInfo, ActivationInfo)) {
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+        return;
+    }
+
+    // Play Montage, Spawn Projectile, etc.
+    // ...
+    
+    EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+}`,
+                explanation: `
+                    <h3>C++ Ability Logic</h3>
+                    <p>A <code>UGameplayAbility</code> is a self-contained unit of logic, like "Fireball", "Jump", or "Heavy Attack". It manages its own lifecycle, cooldowns, and costs (Mana/Stamina).</p>
+                    
+                    <h4>CommitAbility</h4>
+                    <p>The call to <code>CommitAbility</code> is vital. It checks if the player has enough mana and if the ability is off cooldown. If it returns false, the ability should be terminated immediately.</p>
+                `,
+                concepts: ["Ability Lifecycle", "Cost & Cooldown", "GAS Architecture"],
+                practices: ["Always call CommitAbility", "Always call EndAbility when finished", "Use Ability Tasks for latent logic"]
+            },
+            {
+                id: 250,
+                title: "IMC Management (Input)",
+                category: "cat-input",
+                catName: "Input",
+                graph: `flowchart LR
+                    Start[BeginPlay] --> Add[Add Mapping Context]
+                    Enter[Enter Car] --> Swap[Swap IMC: Foot -> Driving]
+                    Swap --"Priority"--> Over[New Inputs Override Old]`,
+                code: `// --- MyCharacter.cpp ---
+void AMyCharacter::PawnClientRestart() {
+    Super::PawnClientRestart();
+
+    if (APlayerController* PC = Cast<APlayerController>(GetController())) {
+        if (UEnhancedInputLocalPlayerSubsystem* Sub = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer())) {
+            // Priority 0: Base controls
+            Sub->AddMappingContext(DefaultIMC, 0);
+        }
+    }
+}`,
+                explanation: `
+                    <h3>Dynamic Input Contexts</h3>
+                    <p>One of the biggest advantages of Enhanced Input is the ability to swap <strong>Input Mapping Contexts (IMC)</strong> at runtime. You can have a "Base" context for walking and a "UI" context for menus.</p>
+                    
+                    <h4>Priority Levels</h4>
+                    <p>When you add an IMC, you give it a Priority number. If two contexts use the same button (e.g., Space Bar), the one with the <strong>Higher Priority</strong> wins. This makes handling vehicles, mounting, or mini-games extremely simple.</p>
+                `,
+                concepts: ["Input Contexts", "Dynamic Remapping", "Priority Layers"],
+                practices: ["Add base IMC in PawnClientRestart", "Use higher priority for temporary states (driving, menus)", "Remove IMC when state ends"]
+            },
+            {
+                id: 251,
+                title: "FStreamableManager (Async)",
+                category: "cat-assets",
+                catName: "Assets",
+                graph: `flowchart LR
+                    Request[Asset Path] --> Manager[Streamable Manager]
+                    Manager --"Async"--> Load[Loading in Background]
+                    Load --"Callback"--> Ready[Asset Ready to Use]`,
+                code: `// --- MyActor.cpp ---
+void AMyActor::StartAsyncLoad() {
+    FStreamableManager& Manager = UAssetManager::GetStreamableManager();
+    FSoftObjectPath Path = LazyMesh.ToSoftObjectPath();
+    
+    // Non-blocking load
+    Handle = Manager.RequestAsyncLoad(Path, FStreamableDelegate::CreateUObject(this, &AMyActor::OnLoadComplete));
+}
+
+void AMyActor::OnLoadComplete() {
+    UStaticMesh* Loaded = LazyMesh.Get();
+    MeshComp->SetStaticMesh(Loaded);
+}`,
+                explanation: `
+                    <h3>Smooth Asset Loading</h3>
+                    <p>If you use <code>LoadSynchronous</code>, the game will "hitch" or freeze for a few milliseconds while the file is read from the disk. <code>FStreamableManager</code> allows you to load assets in the background without affecting the frame rate.</p>
+                    
+                    <h4>Delegates</h4>
+                    <p>Since the load happens in the background, you provide a <strong>Delegate</strong> (a function) that the engine will call automatically once the asset is ready. This is the professional way to handle spawning enemies or changing equipment during gameplay.</p>
+                `,
+                concepts: ["Asynchronous I/O", "Thread Safety", "Hitch Prevention"],
+                practices: ["Always async load during active gameplay", "Keep the manager reference safe", "Check if asset is still valid after load"]
+            },
+            {
+                id: 252,
+                title: "PlaySoundAtLocation",
+                category: "cat-audio",
+                catName: "Audio",
+                graph: `flowchart LR
+                    Trigger[Hit/Explosion] --> Play[PlaySoundAtLocation]
+                    Play --"Spatial"--> Pos[3D Position]
+                    Pos --"Attenuation"--> Hear[Player Hears]`,
+                code: `// One-shot spatialized audio
+UGameplayStatics::PlaySoundAtLocation(
+    this, 
+    ExplosionSound, 
+    GetActorLocation(), 
+    FRotator::ZeroRotator,
+    1.0f, // Volume
+    1.0f, // Pitch
+    0.0f, // Start Time
+    SoundAttenuation // Spatial settings
+);`,
+                explanation: `
+                    <h3>Fire-and-Forget Audio</h3>
+                    <p>For sounds that don't need to be tracked or stopped (like a footstep, a gunshot, or an explosion), <code>PlaySoundAtLocation</code> is the most efficient choice. It spawns the sound and cleans itself up automatically.</p>
+                    
+                    <h4>Spatialization</h4>
+                    <p>By providing a location and an <strong>Attenuation Asset</strong>, the engine handles the 3D positioning. The sound will be louder if the player is close and will pan between the speakers as the player turns.</p>
+                `,
+                concepts: ["Spatial Audio", "Attenuation", "One-shot Effects"],
+                practices: ["Use for short, non-looping sounds", "Provide an Attenuation asset for 3D depth", "Avoid for sounds that need to stop early"]
+            },
+            {
+                id: 253,
+                title: "FQuat (Quaternions)",
+                category: "cat-math",
+                catName: "Math",
+                graph: `flowchart TD
+                    Rot[FRotator] --"Limits"--> Gimbal[Gimbal Lock at 90°]
+                    Quat[FQuat] --"Stability"--> Smooth[Perfect 360° Movement]`,
+                code: `// Slerp (Spherical Linear Interpolation) between rotations
+FQuat StartQuat = GetActorQuat();
+FQuat TargetQuat = FQuat(FRotator(0, 90, 0));
+
+FQuat SmoothQuat = FQuat::Slerp(StartQuat, TargetQuat, DeltaTime * 5.f);
+SetActorRotation(SmoothQuat);`,
+                explanation: `
+                    <h3>Gimbal-Free Rotation</h3>
+                    <p>While <code>FRotator</code> (Pitch/Yaw/Roll) is easy to understand, it fails when you look straight up or down—this is called <strong>Gimbal Lock</strong>. Quaternions (<code>FQuat</code>) use 4D math to represent rotation, which is perfectly stable at any angle.</p>
+                    
+                    <h4>SLERP</h4>
+                    <p>The greatest advantage of Quaternions is <strong>Slerp</strong>. Unlike a standard Interp which might take a "weird" path between angles, Slerp always takes the mathematically shortest and smoothest path on a sphere.</p>
+                `,
+                concepts: ["Mathematical Stability", "Gimbal Lock Prevention", "SLERP"],
+                practices: ["Use for space flight or complex physics", "Convert back to FRotator for UI", "Always normalize Quaternions after math"]
+            },
+            {
+                id: 260,
+                title: "Single-Cast Delegates",
+                category: "cat-events",
+                catName: "Events",
+                graph: `flowchart LR
+                    Sender[System A] --"Question?"--> Del[Delegate]
+                    Del --"Execution"--> Receiver[System B]
+                    Receiver --"Answer"--> Sender`,
+                code: `// .h - Declaration
+DECLARE_DELEGATE_RetVal_OneParam(bool, FCheckCanInteract, AActor*);
+
+// Class Property
+FCheckCanInteract CanInteractDelegate;
+
+// .cpp - Usage
+if (CanInteractDelegate.IsBound()) {
+    bool bAllowed = CanInteractDelegate.Execute(PlayerActor);
+}`,
+                explanation: `
+                    <h3>One-to-One Communication</h3>
+                    <p>Unlike Multicast delegates which "Broadcast" to everyone, a Single-cast delegate is a private line between two objects. Its biggest advantage is that it can **Return a Value**.</p>
+                    
+                    <h4>Why use it?</h4>
+                    <p>Use it when one system needs to "Ask a Question" of another system. For example, a Combat System might ask an Inventory System: "Does the player have enough arrows to fire?" before playing the animation.</p>
+                `,
+                concepts: ["Return Values", "Tight Coupling", "Callback Patterns"],
+                practices: ["Always use IsBound() before Execute()", "Use for logic gates/checks", "Binding is done via BindUObject or BindSP"]
+            },
+            {
+                id: 261,
+                title: "AGameModeBase (Rules)",
+                category: "cat-framework",
+                catName: "Framework",
+                graph: `flowchart TD
+                    Engine[Engine Startup] --> GM[Game Mode]
+                    GM --"Rules"--> GS[Game State]
+                    GM --"Spawn"--> PC[Player Controller]
+                    GM --"Spawn"--> Pawn[Character]`,
+                code: `// --- MyGameMode.cpp ---
+AMyGameMode::AMyGameMode() {
+    // Define the "Identity" of your game
+    DefaultPawnClass = AMyPlayer::StaticClass();
+    PlayerControllerClass = AMyController::StaticClass();
+    GameStateClass = AMyGameState::StaticClass();
+}
+
+void AMyGameMode::PostLogin(APlayerController* NewPlayer) {
+    Super::PostLogin(NewPlayer);
+    // Logic to run when a player enters the world
+}`,
+                explanation: `
+                    <h3>The Game's Referee</h3>
+                    <p>The <code>GameMode</code> is the absolute authority of your game level. It defines the rules, decides who wins or loses, and handles the spawning of players.</p>
+                    
+                    <h4>Single Player Focus</h4>
+                    <p>Even in single-player, the GameMode is essential for managing match flow (e.g., "Starting", "In Progress", "Game Over"). It is the only class that is guaranteed to exist only on the Server (which, in single-player, is just your computer).</p>
+                `,
+                concepts: ["Match Lifecycle", "Class Defaults", "Actor Spawning"],
+                practices: ["Keep match rules here", "Use for level-start initialization", "Access via GetWorld()->GetAuthGameMode()"]
+            },
+            {
+                id: 262,
+                title: "APlayerState (Persistence)",
+                category: "cat-framework",
+                catName: "Framework",
+                graph: `flowchart LR
+                    Pawn[Character Body] --"Dies"--> Dead[Destroyed]
+                    PS[Player State] --"Survives"--> Respawn[New Body]
+                    PS --"Holds"--> Score[Gold / XP / Stats]`,
+                code: `// --- MyPlayerState.h ---
+UCLASS()
+class AMyPlayerState : public APlayerState {
+    GENERATED_BODY()
+public:
+    UPROPERTY(BlueprintReadOnly, Category="Stats")
+    int32 PlayerScore;
+
+    UPROPERTY(BlueprintReadOnly, Category="Stats")
+    int32 TeamID;
+};`,
+                explanation: `
+                    <h3>The Player's Identity</h3>
+                    <p>While the <code>Pawn</code> is just a physical "Puppet" that can be killed and replaced, the <code>PlayerState</code> is the "Soul" of the player. It holds all the data that should survive even if the character dies.</p>
+                    
+                    <h4>Persistence</h4>
+                    <p>If your player dies and respawns, their score, XP, and inventory should usually stay with them. Storing this data in the PlayerState ensures it isn't lost when the character actor is destroyed.</p>
+                `,
+                concepts: ["Data Persistence", "Player Identity", "Session Stats"],
+                practices: ["Store XP and Gold here", "Use for GAS Attribute ownership", "Access via Pawn->GetPlayerState()"]
+            },
+            {
+                id: 263,
+                title: "TMap (Key-Value Pairs)",
+                category: "cat-data",
+                catName: "Data",
+                graph: `flowchart LR
+                    Key[Name: 'IronSword'] --"Lookup"--> Value[Data: Damage=50]
+                    Key2[Name: 'HealthPot'] --"Lookup"--> Value2[Data: Heal=20]`,
+                code: `// An inventory mapping Item Names to Quantity
+TMap<FName, int32> Inventory;
+
+// Adding items
+Inventory.Add(TEXT("Gold"), 100);
+
+// Retrieving safely
+if (int32* Amount = Inventory.Find(TEXT("Gold"))) {
+    *Amount += 50;
+}
+
+// Removing
+Inventory.Remove(TEXT("OldKey"));`,
+                explanation: `
+                    <h3>The Dictionary Container</h3>
+                    <p><code>TMap</code> allows you to associate a <strong>Key</strong> (like a Name or an ID) with a <strong>Value</strong> (like an Actor pointer or a Struct). It is perfect for inventories, stat sheets, or settings.</p>
+                    
+                    <h4>Performance</h4>
+                    <p>Like TSet, TMaps are incredibly fast for lookups. Finding an item by its name in a TMap is significantly faster than looping through a TArray to find a matching string.</p>
+                `,
+                concepts: ["Key-Value Association", "Fast Lookup", "Data Mapping"],
+                practices: ["Use FName for keys where possible", "Use Find() to avoid double lookups", "Note: TMap is not blueprint-editable by default (use USTRUCT if needed)"]
+            },
+            {
+                id: 270,
+                title: "FGameplayTagContainer",
+                category: "cat-gas",
+                catName: "GAS",
+                graph: `flowchart TD
+                    Cont[Tag Container] --> T1[Status.Burning]
+                    Cont --> T2[Status.Stunned]
+                    Cont --> T3[Debuff.Frozen]
+                    Logic[Check] --"Has Tag?"--> Cont`,
+                code: `FGameplayTagContainer MyTags;
+MyTags.AddTag(FGameplayTag::RequestGameplayTag(TEXT("Status.Stunned")));
+
+// Hierarchical check
+if (MyTags.HasTag(FGameplayTag::RequestGameplayTag(TEXT("Status")))) {
+    // Returns TRUE because Stunned is a child of Status
+    StopMovement();
+}`,
+                explanation: `
+                    <h3>Hierarchical Labeling</h3>
+                    <p>Gameplay Tags are strings that act like "Labels" for actors or states. Unlike Enums which can only have one value, a <code>FGameplayTagContainer</code> can hold many tags at once.</p>
+                    
+                    <h4>The Power of Hierarchy</h4>
+                    <p>Tags are hierarchical (separated by dots). If you check if an actor has the tag <code>Status</code>, it will return true if they have <code>Status.Poisoned</code>, <code>Status.Burning</code>, or <code>Status.Stunned</code>. This makes "Broad" checks extremely easy to write.</p>
+                `,
+                concepts: ["Labeling Systems", "Hierarchical Logic", "Data-Driven Tags"],
+                practices: ["Avoid hard-coding tag names (use native tags if possible)", "Use containers for overlapping states", "Leverage hierarchy for generic checks"]
+            },
+            {
+                id: 271,
+                title: "Input Modifiers (Curves)",
+                category: "cat-input",
+                catName: "Input",
+                graph: `flowchart LR
+                    Raw[Raw Stick Input] --> Mod[Modifier: Deadzone]
+                    Mod --> Curve[Modifier: Sensitivity Curve]
+                    Curve --> Final[Smooth Character Turn]`,
+                code: `// Adding a modifier via C++ (rare, usually in BP asset)
+UInputModifierDeadZone* Deadzone = NewObject<UInputModifierDeadZone>();
+Deadzone->LowerThreshold = 0.2f;
+
+MyAction->Modifiers.Add(Deadzone);`,
+                explanation: `
+                    <h3>Sanitizing Player Input</h3>
+                    <p>Input Modifiers allow you to change the "Raw" data from a controller before it reaches your gameplay logic. This is perfect for handling "Dead-zones" (drifting sticks) or "Sensitivity Curves".</p>
+                    
+                    <h4>Dead-zones</h4>
+                    <p>A dead-zone modifier ignores small inputs near the center of the stick. Without this, a player's character might slowly crawl forward even if they aren't touching the controller.</p>
+                `,
+                concepts: ["Data Transformation", "Player Comfort", "Signal Processing"],
+                practices: ["Use for stick sensitivity", "Use for inverting axes", "Configure in the Input Action asset for best workflow"]
+            },
+            {
+                id: 272,
+                title: "UPrimaryDataAsset",
+                category: "cat-assets",
+                catName: "Assets",
+                graph: `flowchart TD
+                    DA[Data Asset] --> Val1[Damage: 100]
+                    DA --> Val2[Mesh: Sword_Model]
+                    DA --> Val3[Sound: Swing_Wav]
+                    Logic[Weapon Code] --"Reads"--> DA`,
+                code: `// --- WeaponData.h ---
+UCLASS()
+class UWeaponData : public UPrimaryDataAsset {
+    GENERATED_BODY()
+public:
+    UPROPERTY(EditAnywhere)
+    float Damage;
+
+    UPROPERTY(EditAnywhere)
+    TSoftObjectPtr<UStaticMesh> Model;
+};`,
+                explanation: `
+                    <h3>The Designer's Toolbox</h3>
+                    <p><code>UPrimaryDataAsset</code> is the best way to store "Buckets" of data that designers can edit. Instead of hard-coding values for 50 different swords, you create 50 Data Assets.</p>
+                    
+                    <h4>Asset Manager</h4>
+                    <p>By using <strong>Primary</strong> Data Assets, you allow the engine's <code>AssetManager</code> to track them. This makes it easy to "Find all Weapons" or "Load all Potions" at runtime without needing to manually link them in a list.</p>
+                `,
+                concepts: ["Data-Driven Design", "Asset Tracking", "Configuration"],
+                practices: ["Use for items, quests, and stats", "Avoid putting logic inside data assets", "Use Soft Pointers for visual assets inside"]
+            },
+            {
+                id: 273,
+                title: "Metasounds C++ Interface",
+                category: "cat-audio",
+                catName: "Audio",
+                graph: `flowchart LR
+                    Logic[Health %] --> Float[C++ SetFloat]
+                    Float --> MS[Metasound Graph]
+                    MS --"Dynamic"--> SFX[Glitchy Heartbeat Effect]`,
+                code: `// Modulating a sound based on health
+UAudioComponent* AC = ...;
+float HealthPercent = CurrentHP / MaxHP;
+
+// Set parameter defined in the Metasound Graph
+AC->SetFloatParameter(TEXT("HealthIntensity"), HealthPercent);
+
+// Trigger a sound event
+AC->SetTriggerParameter(TEXT("OnTakeDamage"));`,
+                explanation: `
+                    <h3>Procedural Audio Control</h3>
+                    <p>Metasounds are the new procedural audio graphs in UE5. Unlike old Sound Cues, they are fully programmable and can react to data in real-time.</p>
+                    
+                    <h4>Dynamic Parameters</h4>
+                    <p>You can send any data (Floats, Booleans, Triggers) from your C++ logic into the Metasound. This allows the audio to "Evolve" as the game state changes—for example, making the music more intense as the player's health drops.</p>
+                `,
+                concepts: ["Procedural Audio", "Real-time Modulation", "Sound Synthesis"],
+                practices: ["Use Triggers for precise timing", "Match parameter names EXACTLY", "Cache the AudioComponent reference"]
+            },
+            {
+                id: 274,
+                title: "SweepSingleByChannel",
+                category: "cat-phys",
+                catName: "Physics",
+                graph: `flowchart LR
+                    Start[Start Pos] --"Move Shape"--> End[End Pos]
+                    Shape[Sphere/Box] --"Collides"--> Hit[FHitResult]
+                    Hit --> Data[Exact Impact Point]`,
+                code: `FHitResult Hit;
+FVector Start = GetActorLocation();
+FVector End = Start + (GetActorForwardVector() * 200.f);
+FCollisionShape MyBox = FCollisionShape::MakeBox(FVector(50, 50, 50));
+
+bool bHit = GetWorld()->SweepSingleByChannel(
+    Hit,
+    Start,
+    End,
+    FQuat::Identity,
+    ECC_Visibility,
+    MyBox
+);`,
+                explanation: `
+                    <h3>Volumetric Collision</h3>
+                    <p>While a Line Trace is a single "Infinitely Thin" beam, a <strong>Sweep</strong> moves a physical 3D shape (like a box or sphere) through space to see if it hits anything.</p>
+                    
+                    <h4>Why Sweep?</h4>
+                    <p>Use a sweep when you need to know if a character can "Fit" through an opening, or for large projectiles (like a boulder) where a single thin line would be too small to accurately detect hits.</p>
+                `,
+                concepts: ["Physical Volume", "Collision Geometry", "Intersection Tests"],
+                practices: ["Use for thick projectiles", "Use for 'Can Character Fit' checks", "Be mindful of performance vs Line Traces"]
+            },
+            {
+                id: 275,
+                title: "UKismetMathLibrary::VInterpTo",
+                category: "cat-math",
+                catName: "Math",
+                graph: `flowchart LR
+                    A[Current Location] --"VInterpTo"--> B[Target Location]
+                    B --"Speed"--> Smooth[Smooth Movement Path]`,
+                code: `// Inside Tick
+FVector Current = GetActorLocation();
+FVector Target = FollowTarget->GetActorLocation();
+
+FVector NewPos = UKismetMathLibrary::VInterpTo(
+    Current, 
+    Target, 
+    DeltaTime, 
+    2.0f // Interp Speed
+);
+
+SetActorLocation(NewPos);`,
+                explanation: `
+                    <h3>Smoothing Position Changes</h3>
+                    <p><code>VInterpTo</code> is the vector version of interpolation. It calculates a smooth path between two 3D points over several frames.</p>
+                    
+                    <h4>Ease-In/Out</h4>
+                    <p>The standard <code>VInterpTo</code> uses an exponential curve—it moves fast at the start and slows down as it reaches the target. For a constant, linear speed, use <code>VInterpTo_Constant</code> instead.</p>
+                `,
+                concepts: ["Motion Smoothing", "Vector Math", "Juice"],
+                practices: ["Higher speed = more responsive", "Lower speed = floatier feel", "Always use DeltaTime for frame-rate independence"]
+            },
+            {
+                id: 280,
+                title: "UBTService (AI Logic)",
+                category: "cat-ai",
+                catName: "AI",
+                graph: `flowchart TD
+                    Node[Behavior Tree Node] --> Serv[C++ Service]
+                    Serv --"Interval: 0.5s"--> Tick[TickNode]
+                    Tick --> Update[Update Blackboard]`,
+                code: `// --- BTService_CheckDistance.h ---
+UCLASS()
+class UBTService_CheckDistance : public UBTService {
+    GENERATED_BODY()
+protected:
+    virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+};
+
+// --- BTService_CheckDistance.cpp ---
+void UBTService_CheckDistance::TickNode(UBehaviorTreeComponent& OwnerComp, ...) {
+    APawn* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    float Dist = FVector::Dist(OwnerComp.GetAIOwner()->GetPawn()->GetActorLocation(), Player->GetActorLocation());
+    
+    OwnerComp.GetBlackboardComponent()->SetValueAsFloat(FName("DistToPlayer"), Dist);
+}`,
+                explanation: `
+                    <h3>Recurring AI Checks</h3>
+                    <p>A <code>UBTService</code> is logic that runs at a set interval (e.g., every 0.5 seconds) as long as its branch of the Behavior Tree is active. This is much more efficient than checking conditions every single frame.</p>
+                    
+                    <h4>Optimization</h4>
+                    <p>Use services to update the <strong>Blackboard</strong>. For example, a service can constantly update the "Distance to Player" value, allowing Decorators elsewhere in the tree to react instantly to changes.</p>
+                `,
+                concepts: ["Optimization", "Blackboard Updates", "BT Infrastructure"],
+                practices: ["Use for state updates", "Set a random deviation to interval to prevent AI 'syncing'", "Avoid complex pathfinding inside services"]
+            },
+            {
+                id: 281,
+                title: "FGameplayEffectContextHandle",
+                category: "cat-gas",
+                catName: "GAS",
+                graph: `flowchart LR
+                    Source[Attacker] --"Context"--> Effect[Gameplay Effect]
+                    Effect --"Payload"--> Target[Defender]
+                    Target --"Extract"--> Hit[Hit Location / Bone]`,
+                code: `// Passing hit data through GAS
+FGameplayEffectContextHandle Context = ASC->MakeEffectContext();
+Context.AddHitResult(MyHitResult);
+
+FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(EffectClass, 1.f, Context);
+ASC->ApplyGameplayEffectSpecToTarget(*Spec.Data.Get(), TargetASC);`,
+                explanation: `
+                    <h3>Carrying Hit Data</h3>
+                    <p>When you apply a Gameplay Effect (like damage), you often need the receiver to know <strong>Where</strong> they were hit (for blood splatters) or <strong>Who</strong> hit them (for kill credit). <code>FGameplayEffectContextHandle</code> is the suitcase that carries this extra data.</p>
+                    
+                    <h4>Data Extraction</h4>
+                    <p>On the receiving end (e.g., in an AttributeSet or a GameplayCue), you can extract the hit result from the context to play a sound at the exact impact location or trigger a specific directional hit animation.</p>
+                `,
+                concepts: ["Metadata Passing", "Hit Attribution", "GAS Context"],
+                practices: ["Always create a fresh context for new attacks", "Use for directional hit reactions", "Essential for 'Instigator' tracking"]
+            },
+            {
+                id: 282,
+                title: "ULocalPlayerSubsystem",
+                category: "cat-subsystems",
+                catName: "Subsystems",
+                graph: `flowchart LR
+                    Player[Human at PC] --> Sub[Local Player Subsystem]
+                    Sub --> UI[Personal HUD Settings]
+                    Sub --> Input[Input Remapping]`,
+                code: `// --- UIPreferenceSubsystem.h ---
+UCLASS()
+class UUIPreferenceSubsystem : public ULocalPlayerSubsystem {
+    GENERATED_BODY()
+public:
+    UPROPERTY()
+    bool bInvertYAxis = false;
+};
+
+// --- Usage ---
+UUIPreferenceSubsystem* Prefs = ULocalPlayer::GetSubsystem<UUIPreferenceSubsystem>(GetLocalPlayer());`,
+                explanation: `
+                    <h3>Per-Player Logic</h3>
+                    <p>While <code>GameInstance</code> is global for the whole application, <code>ULocalPlayerSubsystem</code> is unique to each person playing. In a single-player game, there's only one, but it's the best place for player-specific settings like Input Inversion or UI scale.</p>
+                    
+                    <h4>UI Integration</h4>
+                    <p>This is the perfect place to bridge C++ logic with UMG. Your HUD widgets can easily query this subsystem to see how they should be displayed without needing to talk to the GameMode or Character.</p>
+                `,
+                concepts: ["Personalization", "Input Settings", "Local Context"],
+                practices: ["Use for player settings", "Use for local input remapping", "Survives level loads like GameInstanceSubsystem"]
+            },
+            {
+                id: 283,
+                title: "TSoftClassPtr (BP Loading)",
+                category: "cat-assets",
+                catName: "Assets",
+                graph: `flowchart LR
+                    Var[TSoftClassPtr] --"Wait"--> RAM[Empty]
+                    Load[Async Load] --"Success"--> RAM[BP Class Ready]
+                    RAM --"Spawn"--> Actor[Actor in World]`,
+                code: `// --- Spawner.h ---
+UPROPERTY(EditAnywhere, Category="Classes")
+TSoftClassPtr<AActor> EnemyBP;
+
+// --- Spawner.cpp ---
+void ASpawner::Spawn() {
+    if (EnemyBP.IsPending()) {
+        UClass* LoadedClass = EnemyBP.LoadSynchronous();
+        GetWorld()->SpawnActor<AActor>(LoadedClass, ...);
+    }
+}`,
+                explanation: `
+                    <h3>Referencing Blueprints Safely</h3>
+                    <p>If you use <code>TSubclassOf&lt;AMyActor&gt;</code>, the engine will force-load that Blueprint into memory as soon as the spawner exists. If that Blueprint is large, your game will lag. <code>TSoftClassPtr</code> prevents this.</p>
+                    
+                    <h4>Why it matters</h4>
+                    <p>In a large game with 100 different enemy types, you don't want all 100 Blueprints loaded at the same time. You use soft class pointers to only load the enemy type you are actually about to spawn.</p>
+                `,
+                concepts: ["Class Referencing", "Memory Optimization", "BP Performance"],
+                practices: ["Use for all Blueprint class variables", "Use LoadSynchronous only for small classes", "Prefer Async loading for major characters"]
+            },
+            {
+                id: 284,
+                title: "FBox & FSphere Bounds",
+                category: "cat-math",
+                catName: "Math",
+                graph: `flowchart LR
+                    Bounds[FSphere Radius] --"Check"--> Point[My Location]
+                    Point --"Result"--> Inside{Is Inside?}
+                    Inside --"Yes"--> Play[Apply Effect]`,
+                code: `// Check if a point is within a trigger sphere
+FSphere DamageArea(GetActorLocation(), 500.f);
+FVector EnemyLoc = Enemy->GetActorLocation();
+
+if (DamageArea.IsInside(EnemyLoc)) {
+    // Enemy is within 500 units
+    DealDamage(Enemy);
+}`,
+                explanation: `
+                    <h3>Primitive Containment</h3>
+                    <p>Sometimes you don't need a full collision component. <code>FBox</code> and <code>FSphere</code> are lightweight mathematical shapes used to check if points or other shapes are overlapping.</p>
+                    
+                    <h4>Speed</h4>
+                    <p>Checking <code>IsInside</code> on an <code>FSphere</code> is one of the fastest math operations in Unreal. It's just a simple distance check. Use this for quick proximity logic before doing more expensive line traces or physics sweeps.</p>
+                `,
+                concepts: ["Bounding Volumes", "Proximity Checks", "Geometry Math"],
+                practices: ["Use for quick distance culling", "Use FBox for square areas", "Combine with physics for accurate results"]
+            },
+            {
+                id: 285,
+                title: "TFunctionRef (Efficiency)",
+                category: "cat-events",
+                catName: "Events",
+                graph: `flowchart LR
+                    Func[Heavy Loop] --"Uses"--> Callback[Small Lambda]
+                    Callback --"No Memory Allocation"--> Fast[Extreme Performance]`,
+                code: `// Function that takes a lambda as an argument
+void ProcessActors(TFunctionRef<void(AActor*)> Callback) {
+    for (AActor* A : AllActors) {
+        Callback(A);
+    }
+}
+
+// Usage
+ProcessActors([](AActor* A){ 
+    UE_LOG(LogTemp, Log, TEXT("Actor: %s"), *A->GetName()); 
+});`,
+                explanation: `
+                    <h3>High-Performance Callbacks</h3>
+                    <p>When you want to pass a <strong>Lambda</strong> into a function, <code>TFunctionRef</code> is the fastest way to do it. Unlike <code>TFunction</code>, it does not allocate memory on the heap.</p>
+                    
+                    <h4>The Catch</h4>
+                    <p>Because it doesn't allocate memory, it is "Transient". You can only use it inside the function it was passed to. Never store a <code>TFunctionRef</code> as a class variable—it will point to invalid memory once the function ends!</p>
+                `,
+                concepts: ["Lambda Optimization", "Stack vs Heap", "Functional C++"],
+                practices: ["Use for temporary loops/filters", "Never store as a member variable", "Faster than standard Delegates for quick logic"]
+            },
+            {
+                id: 286,
+                title: "Static Mechanics",
+                category: "cat-cpp",
+                catName: "C++",
+                graph: `flowchart LR
+                    Obj1[Actor 1] --"Shared"--> Stat[Static Variable]
+                    Obj2[Actor 2] --"Shared"--> Stat
+                    Stat --"Common"--> Value[Global Counter]`,
+                code: `// .h
+class AMyActor : public AActor {
+    static int32 GlobalActorCount; // Declared
+};
+
+// .cpp
+int32 AMyActor::GlobalActorCount = 0; // Defined
+
+AMyActor::AMyActor() {
+    GlobalActorCount++; // All actors share this one number
+}`,
+                explanation: `
+                    <h3>Shared Global State</h3>
+                    <p>The <code>static</code> keyword in C++ means a variable or function belongs to the <strong>Class</strong> itself, rather than a specific instance. All 500 instances of <code>AMyActor</code> will share the exact same static variable.</p>
+                    
+                    <h4>Static Functions</h4>
+                    <p>Static functions can be called without having an object (e.g., <code>UMyMath::CalculateResult()</code>). They are perfect for "Helper" or "Utility" libraries that don't need to store individual state.</p>
+                `,
+                concepts: ["Class Scope", "Global Helpers", "Memory Sharing"],
+                practices: ["Use for Utility libraries", "Use for global counters (carefully)", "Note: Statics don't reset automatically on level load!"]
+            },
+            {
                 id: 120,
                 title: "TArray::FilterByPredicate",
                 category: "cat-data",
