@@ -34,7 +34,7 @@ const subscribeToScrollZoom = (listener: (enabled: boolean) => void) => {
   return () => scrollZoomListeners.delete(listener);
 };
 
-// Mermaid configuration matching the reference HTML that renders beautifully
+// Mermaid configuration with larger boxes to prevent text clipping
 const getMermaidConfig = (): MermaidConfig => ({
   startOnLoad: false,
   theme: 'dark',
@@ -53,8 +53,13 @@ const getMermaidConfig = (): MermaidConfig => ({
     useMaxWidth: false,
     htmlLabels: true,
     curve: 'basis',
-    nodeSpacing: 30,
-    rankSpacing: 50,
+    nodeSpacing: 50,
+    rankSpacing: 70,
+    padding: 15,
+    // Larger wrapping width to prevent text from being cut off
+    wrappingWidth: 400,
+    // Extra margin for subgraph titles
+    subGraphTitleMargin: { top: 10, bottom: 10 },
   },
   sequence: {
     useMaxWidth: false,
@@ -393,14 +398,21 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
                 padding: '50vh 50vw',
               }}
             >
-              {/* The SVG from mermaid - rendered untouched */}
+              {/* The SVG from mermaid */}
               <Box
                 sx={{
                   '& svg': {
                     display: 'block',
-                    // Don't constrain dimensions - let mermaid decide
                     maxWidth: 'none',
                     height: 'auto',
+                  },
+                  // Fix subgraph/cluster title clipping
+                  '& .cluster-label foreignObject': {
+                    overflow: 'visible',
+                  },
+                  '& .cluster-label foreignObject div': {
+                    overflow: 'visible',
+                    whiteSpace: 'nowrap',
                   },
                 }}
                 dangerouslySetInnerHTML={{ __html: svgContent }}
