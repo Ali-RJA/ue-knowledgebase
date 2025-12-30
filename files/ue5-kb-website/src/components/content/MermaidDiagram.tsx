@@ -406,13 +406,14 @@ export const MermaidDiagram = ({ chart, id, interactive = true }: MermaidDiagram
                     maxWidth: 'none',
                     height: 'auto',
                   },
-                  // Fix subgraph/cluster title clipping
+                  // Fix subgraph/cluster title clipping + center
                   '& .cluster-label foreignObject': {
                     overflow: 'visible',
                   },
                   '& .cluster-label foreignObject div': {
                     overflow: 'visible',
                     whiteSpace: 'nowrap',
+                    textAlign: 'center',
                   },
                 }}
                 dangerouslySetInnerHTML={{ __html: svgContent }}
