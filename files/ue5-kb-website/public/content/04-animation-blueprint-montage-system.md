@@ -183,105 +183,105 @@ sequenceDiagram
 
 **Purpose**: Custom AnimInstance with combat-specific state variables and thread-safe updates
 
-```cpp
+```cpp[uclass-generatedbody,tweakobjectptr]
 UCLASS()
 class HATTIN_API UHattinAnimInstance : public UAnimInstance
 {
     GENERATED_BODY()
-    
+
 public:
     UHattinAnimInstance();
-    
+
     // Thread-safe update (runs on worker thread)
     virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
-    
+
     // Main thread update (use sparingly)
     virtual void NativeUpdateAnimation(float DeltaSeconds) override;
-    
+
     // Initialization
     virtual void NativeInitializeAnimation() override;
-    
+
     // ============================================
     // LOCOMOTION VARIABLES (BlueprintReadOnly)
     // ============================================
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
     float GroundSpeed;
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
     float MovementDirection; // -180 to 180
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
     bool bIsMoving;
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
     bool bIsInAir;
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
     bool bIsCrouching;
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
     FVector Velocity;
-    
+
     // ============================================
     // COMBAT VARIABLES (BlueprintReadOnly)
     // ============================================
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Combat")
     bool bIsInCombat;
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Combat")
     bool bIsAttacking;
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Combat")
     bool bIsBlocking;
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "Combat")
     EHattinCombatStance CurrentStance;
-    
+
     // ============================================
     // AIM OFFSET VARIABLES
     // ============================================
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "AimOffset")
     float AimYaw;   // -90 to 90
-    
+
     UPROPERTY(BlueprintReadOnly, Category = "AimOffset")
     float AimPitch; // -90 to 90
-    
+
 protected:
     // Cached references
     UPROPERTY()
     TWeakObjectPtr<AHattinCharacterBase> OwnerCharacter;
-    
+
     UPROPERTY()
     TWeakObjectPtr<UCharacterMovementComponent> MovementComponent;
-    
+
     UPROPERTY()
     TWeakObjectPtr<UHattinCombatComponent> CombatComponent;
-    
+
 private:
     // Thread-safe calculations
     void UpdateLocomotionVariables(float DeltaSeconds);
     void UpdateCombatVariables(float DeltaSeconds);
     void UpdateAimOffsetVariables(float DeltaSeconds);
-    
+
     float CalculateMovementDirection() const;
 };
 ```
 
 ### 3.2 AnimInstance Implementation
 
-```cpp
+```cpp[superfunction,castt-safe-type-casting,findcomponentbyclass,fvector-math-basics]
 void UHattinAnimInstance::NativeInitializeAnimation()
 {
     Super::NativeInitializeAnimation();
-    
+
     // Cache references (main thread only)
     if (APawn* Owner = TryGetPawnOwner())
     {
         OwnerCharacter = Cast<AHattinCharacterBase>(Owner);
-        
+
         if (OwnerCharacter.IsValid())
         {
             MovementComponent = OwnerCharacter->GetCharacterMovement();
@@ -293,10 +293,10 @@ void UHattinAnimInstance::NativeInitializeAnimation()
 void UHattinAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
     Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
-    
+
     // All variable updates here run on worker thread
     // IMPORTANT: Only read data, never modify game state
-    
+
     UpdateLocomotionVariables(DeltaSeconds);
     UpdateCombatVariables(DeltaSeconds);
     UpdateAimOffsetVariables(DeltaSeconds);
@@ -305,29 +305,29 @@ void UHattinAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 void UHattinAnimInstance::UpdateLocomotionVariables(float DeltaSeconds)
 {
     if (!MovementComponent.IsValid()) return;
-    
+
     Velocity = MovementComponent->Velocity;
     GroundSpeed = Velocity.Size2D();
     bIsMoving = GroundSpeed > 10.f;
     bIsInAir = MovementComponent->IsFalling();
     bIsCrouching = MovementComponent->IsCrouching();
-    
+
     MovementDirection = CalculateMovementDirection();
 }
 
 float UHattinAnimInstance::CalculateMovementDirection() const
 {
     if (!OwnerCharacter.IsValid() || GroundSpeed < 10.f) return 0.f;
-    
+
     FVector VelocityNorm = Velocity.GetSafeNormal2D();
     FVector ForwardVector = OwnerCharacter->GetActorForwardVector();
-    
+
     // Calculate angle between velocity and forward
     float Angle = FMath::Atan2(
         FVector::CrossProduct(ForwardVector, VelocityNorm).Z,
         FVector::DotProduct(ForwardVector, VelocityNorm)
     );
-    
+
     return FMath::RadiansToDegrees(Angle);
 }
 ```
@@ -338,31 +338,31 @@ float UHattinAnimInstance::CalculateMovementDirection() const
 
 **Purpose**: Defines hit detection window within attack montages
 
-```cpp
+```cpp[uclass-generatedbody,uproperty-reflection,virtual-vs-override]
 UCLASS()
 class HATTIN_API UAN_HitWindow : public UAnimNotifyState
 {
     GENERATED_BODY()
-    
+
 public:
     UAN_HitWindow();
-    
+
     virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
         float TotalDuration, const FAnimNotifyEventReference& EventReference) override;
-    
+
     virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
         const FAnimNotifyEventReference& EventReference) override;
-    
+
     virtual FString GetNotifyName_Implementation() const override { return TEXT("Hit Window"); }
-    
+
 #if WITH_EDITORONLY_DATA
     virtual FLinearColor GetEditorColor() override { return FLinearColor::Red; }
 #endif
-    
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Window")
     FHattinTraceConfig TraceConfig;
-    
+
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hit Window")
     float DamageMultiplier = 1.0f;
 };
@@ -372,30 +372,30 @@ protected:
 
 **Purpose**: Opens window for combo input during attack montage
 
-```cpp
+```cpp[uclass-generatedbody,uproperty-reflection,virtual-vs-override]
 UCLASS()
 class HATTIN_API UAN_ComboWindowState : public UAnimNotifyState
 {
     GENERATED_BODY()
-    
+
 public:
     virtual void NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
         float TotalDuration, const FAnimNotifyEventReference& EventReference) override;
-    
+
     virtual void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
         const FAnimNotifyEventReference& EventReference) override;
-    
+
     virtual FString GetNotifyName_Implementation() const override { return TEXT("Combo Window"); }
-    
+
 #if WITH_EDITORONLY_DATA
     virtual FLinearColor GetEditorColor() override { return FLinearColor::Green; }
 #endif
-    
+
 protected:
     // Which combo this leads to
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
     FName NextComboSectionName;
-    
+
     // Which input triggers this combo
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combo")
     EHattinAttackType RequiredInput;
@@ -551,16 +551,16 @@ AnimGraph Setup:
 
 **Solution**: Single montage with sections, use `Montage_JumpToSection` during combo window
 
-```cpp
+```cpp[montageplay-delegates]
 void UHattinCombatComponent::TryCombo()
 {
     if (!bComboWindowOpen) return;
-    
+
     UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
-    
+
     // Jump to next section within same montage
     AnimInstance->Montage_JumpToSection(NextComboSection, CurrentMontage);
-    
+
     bComboWindowOpen = false;
 }
 ```
@@ -571,7 +571,7 @@ void UHattinCombatComponent::TryCombo()
 
 **Solution**: Custom AnimNotifyState classes that call into gameplay components
 
-```cpp
+```cpp[findcomponentbyclass,getworld-entry-point]
 void UAN_HitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, ...)
 {
     if (AActor* Owner = MeshComp->GetOwner())

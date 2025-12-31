@@ -11,6 +11,29 @@ interface MarkdownRendererProps {
   content: string;
 }
 
+// Parse lego piece references from language string
+// Format: language[lego-slug1,lego-slug2] or language[slug|Label]
+const parseLegoReferences = (languageStr: string): { language: string; legoPieces: Array<{ slug: string; label?: string }> } => {
+  const match = /(\w+)(?:\[([^\]]+)\])?/.exec(languageStr);
+  if (!match) {
+    return { language: languageStr, legoPieces: [] };
+  }
+
+  const language = match[1];
+  const legoStr = match[2];
+
+  if (!legoStr) {
+    return { language, legoPieces: [] };
+  }
+
+  const legoPieces = legoStr.split(',').map(piece => {
+    const [slug, label] = piece.split('|');
+    return { slug: slug.trim(), label: label?.trim() };
+  });
+
+  return { language, legoPieces };
+};
+
 export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
   return (
     <Box sx={{ '& > *:first-of-type': { mt: 0 } }}>
@@ -63,8 +86,13 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
               return '';
             };
             const codeString = extractText(children).replace(/\n$/, '');
-            const language = match ? match[1] : undefined;
+            const languageSpec = match ? match[1] : undefined;
             const inline = !className && !codeString.includes('\n');
+
+            // Parse language and lego piece references
+            const { language, legoPieces } = languageSpec
+              ? parseLegoReferences(languageSpec)
+              : { language: undefined, legoPieces: [] };
 
             // Render mermaid code blocks as diagrams
             if (language === 'mermaid') {
@@ -75,7 +103,7 @@ export const MarkdownRenderer = ({ content }: MarkdownRendererProps) => {
               return <CodeBlock code={codeString} inline />;
             }
 
-            return <CodeBlock code={codeString} language={language} />;
+            return <CodeBlock code={codeString} language={language} legoPieces={legoPieces} />;
           },
           ul: ({ children }) => (
             <Box component="ul" sx={{ pl: 3, mb: 2 }}>
