@@ -1,0 +1,139 @@
+flowchart TD
+    %% ==========================================
+    %% LAYER 1: PLAYER CONTEXT & STATE
+    %% ==========================================
+    subgraph PLAYER_LAYER ["LAYER 1: PLAYER CONTEXT (State Holder)"]
+        direction TB
+
+        subgraph HeroCharacter ["AHeroCharacter"]
+            direction LR
+            CurrentStance["<b>CurrentStance</b><br/>EStance Enum<br/>(Stone/Water/Wind/Moon)"]
+            CurrentWeapon["<b>CurrentWeapon</b><br/>AWeaponBase*<br/>(Owning Pointer)"]
+        end
+
+        StanceEnum["<b>EStance Enumeration</b><br/>• Stone<br/>• Water<br/>• Wind<br/>• Moon"]
+    end
+
+    %% ==========================================
+    %% LAYER 2: ACTOR LOGIC SHELLS
+    %% ==========================================
+    subgraph ACTOR_LAYER ["LAYER 2: WEAPON ACTORS (Logic Shells)"]
+        direction TB
+
+        subgraph WeaponBase ["AWeaponBase (Base Class)"]
+            direction LR
+            WB_Data["<b>WeaponData</b><br/>UWeaponDefinition*"]
+            WB_Mesh["<b>Mesh</b><br/>USkeletalMeshComponent*"]
+        end
+
+        subgraph MeleeWeapon ["AMeleeWeapon (Sword Logic)"]
+            direction TB
+            MW_Logic["<b>DoAttack Flow</b><br/>1. Gets Stance from Hero<br/>2. Looks up Config<br/>3. Plays Montage"]
+            MW_Hit["<b>HitWindowComponent</b><br/>Collision Detection"]
+        end
+
+        subgraph RangedWeapon ["ARangedWeapon (Crossbow Logic)"]
+            direction LR
+            RW_Reload["Reload()"]
+            RW_Fire["Fire()"]
+        end
+    end
+
+    %% ==========================================
+    %% LAYER 3: DATA CONFIGURATION
+    %% ==========================================
+    subgraph DATA_LAYER ["LAYER 3: DATA ASSETS (Configuration)"]
+        direction TB
+
+        subgraph WeaponDef ["UWeaponDefinition (Base Data Asset)"]
+            direction LR
+            WD_Mesh["<b>Mesh</b><br/>USkeletalMesh*"]
+            WD_Damage["<b>BaseDamage</b><br/>float"]
+        end
+
+        subgraph SwordDef ["USwordDefinition (Stance Container)"]
+            direction TB
+            SD_Map["<b>StanceMovesets</b><br/>TMap&lt;EStance, UStanceConfig*&gt;<br/><i>Maps Stance Enum to Config</i>"]
+        end
+
+        subgraph StanceConfigs ["Stance Configurations"]
+            direction LR
+
+            Stone["<b>UStanceConfig_Stone</b><br/>• LightAttack Montage<br/>• HeavyAttack Montage<br/>• MoveSpeed: 1.0x"]
+            Water["<b>UStanceConfig_Water</b><br/>• LightAttack Montage<br/>• HeavyAttack Montage<br/>• MoveSpeed: 1.2x"]
+            Wind["<b>UStanceConfig_Wind</b><br/>• LightAttack Montage<br/>• HeavyAttack Montage<br/>• MoveSpeed: 1.5x"]
+            Moon["<b>UStanceConfig_Moon</b><br/>• LightAttack Montage<br/>• HeavyAttack Montage<br/>• MoveSpeed: 0.8x"]
+        end
+    end
+
+    %% ==========================================
+    %% CRITICAL PATH: RUNTIME FLOW
+    %% ==========================================
+    subgraph RUNTIME ["RUNTIME EXECUTION FLOW"]
+        direction LR
+        Flow1["1. Player switches Stance"]
+        Flow2["2. Hero updates CurrentStance"]
+        Flow3["3. Melee weapon reads CurrentStance"]
+        Flow4["4. Looks up StanceConfig from Map"]
+        Flow5["5. Plays appropriate Montage"]
+    end
+
+    %% ==========================================
+    %% RELATIONSHIPS
+    %% ==========================================
+
+    %% Player holds state and weapon
+    HeroCharacter -->|Owns| CurrentWeapon
+    HeroCharacter -->|Uses| StanceEnum
+
+    %% Weapon inheritance
+    WeaponBase -.->|Inherits| MeleeWeapon
+    WeaponBase -.->|Inherits| RangedWeapon
+
+    %% Weapon holds data asset
+    WeaponBase -->|Holds Config| WeaponDef
+
+    %% Data asset inheritance
+    WeaponDef -.->|Inherits| SwordDef
+
+    %% Sword Definition owns stance configs
+    SwordDef -->|Maps to| Stone
+    SwordDef -->|Maps to| Water
+    SwordDef -->|Maps to| Wind
+    SwordDef -->|Maps to| Moon
+
+    %% Runtime reads
+    MeleeWeapon -->|Reads Stance from| HeroCharacter
+    MeleeWeapon -->|Looks up Config via| SwordDef
+    MeleeWeapon -.->|Reads at Runtime| Stone
+    MeleeWeapon -.->|Reads at Runtime| Water
+    MeleeWeapon -.->|Reads at Runtime| Wind
+    MeleeWeapon -.->|Reads at Runtime| Moon
+
+    %% Flow connections
+    PLAYER_LAYER ==> ACTOR_LAYER
+    ACTOR_LAYER ==> DATA_LAYER
+    DATA_LAYER ==> RUNTIME
+
+    %% ==========================================
+    %% STYLING
+    %% ==========================================
+    style PLAYER_LAYER fill:#1a1a1a,stroke:#333,color:#fff
+    style ACTOR_LAYER fill:#2d3748,stroke:#4a5568,color:#fff
+    style DATA_LAYER fill:#1a365d,stroke:#2c5282,color:#fff
+    style RUNTIME fill:#22543d,stroke:#276749,color:#fff
+
+    style HeroCharacter fill:#2a9d8f,stroke:#fff,color:#fff
+    style StanceEnum fill:#264653,stroke:#fff,color:#fff
+
+    style WeaponBase fill:#457b9d,stroke:#fff,color:#fff
+    style MeleeWeapon fill:#1d3557,stroke:#fff,color:#fff
+    style RangedWeapon fill:#1d3557,stroke:#fff,color:#fff
+
+    style WeaponDef fill:#e76f51,stroke:#fff,color:#fff
+    style SwordDef fill:#f4a261,stroke:#333,color:#333
+
+    style Stone fill:#8b0000,stroke:#fff,color:#fff
+    style Water fill:#4169e1,stroke:#fff,color:#fff
+    style Wind fill:#32cd32,stroke:#fff,color:#fff
+    style Moon fill:#9370db,stroke:#fff,color:#fff

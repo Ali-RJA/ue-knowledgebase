@@ -283,6 +283,18 @@ export const diagrams: Diagram[] = [
     sourcePath: 'WeaponDataAssetFlowchart.mermaid',
     relatedTopics: ['topic-08'],
   },
+  {
+    id: 'diagram-14',
+    slug: 'ghost-of-yotei-weapons-stances-system',
+    title: 'Ghost Of Yotei Weapons and Stances System',
+    type: 'diagram',
+    category: 'design',
+    tags: ['Data-Driven', 'Combat', 'Architecture', 'Stance'],
+    summary: 'Complete architecture for Ghost of Yotei\'s stance-based weapon system with data-driven combat configuration.',
+    mermaidSource: '',
+    sourcePath: 'GhostOfYoteiWeaponsStancesDiagram.mermaid',
+    relatedTopics: ['topic-08', 'topic-02'],
+  },
 ];
 
 // Lego Pieces - imported from generated data file (113 pieces)

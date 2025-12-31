@@ -1,0 +1,430 @@
+
+> ue5-kb-website\src\data\lego-pieces-data.ts:425:    // 3. Bind to external
+system delegates
+  ue5-kb-website\src\data\lego-pieces-data.ts:426:
+  ue5-kb-website\src\data\lego-pieces-data.ts:427:    if (GEngine) {
+  ue5-kb-website\src\data\lego-pieces-data.ts:428:
+GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green,
+  ue5-kb-website\src\data\lego-pieces-data.ts:429:
+FString::Printf(TEXT("%s has entered the game!"), *GetName()));
+  ue5-kb-website\src\data\lego-pieces-data.ts:430:    }
+> ue5-kb-website\src\data\lego-pieces-data.ts:583:    // 2. Unbind from
+delegates to prevent dangling refs
+  ue5-kb-website\src\data\lego-pieces-data.ts:584:
+OnMyEvent.RemoveAll(this);
+  ue5-kb-website\src\data\lego-pieces-data.ts:585:
+  ue5-kb-website\src\data\lego-pieces-data.ts:586:    // 3. Always call Super
+at the END
+  ue5-kb-website\src\data\lego-pieces-data.ts:587:
+Super::EndPlay(EndPlayReason);
+  ue5-kb-website\src\data\lego-pieces-data.ts:588:}`,
+> ue5-kb-website\src\data\lego-pieces-data.ts:593:                    <p>This
+is your last chance to stop looping timers or unbind from "Multicast
+Delegates". If a timer tries to call a function on an actor that has been
+deleted, the game will <strong>Crash</strong>.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:594:
+  ue5-kb-website\src\data\lego-pieces-data.ts:595:                    <h4>The
+Reason Enum</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:596:                    <p>The
+<code>EEndPlayReason</code> parameter is very useful. You might want to save
+the player's position if they are leaving because of a
+<code>LevelTransition</code>, but not if they are leaving because they
+<code>Quit</code> or died.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:597:    diagram: `flowchart TD
+  ue5-kb-website\src\data\lego-pieces-data.ts:598:
+Exit[Destroy/Quit/Load] --> Logic[EndPlay]
+> ue5-kb-website\src\data\lego-pieces-data.ts:600:                    Logic
+--"Reason: Destroyed"--> Clean[Clear Timers/Delegates]
+  ue5-kb-website\src\data\lego-pieces-data.ts:601:                    Clean
+--> GC[Garbage Collection]`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:602:    concepts: ["Cleanup
+Phase","Memory Safety","Destruction Reasons"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:603:    practices: ["Always
+clear timers here","Always call Super::EndPlay last","Check the Reason if you
+have conditional cleanup"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:604:    relatedTopics: [],
+  ue5-kb-website\src\data\lego-pieces-data.ts:605:  },
+> ue5-kb-website\src\data\lego-pieces-data.ts:1136:    tags:
+["Physics","Trigger Volumes","Dynamic Delegates","Event Filtering"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1137:    summary: "Overlaps are
+used for \"Trigger Zones\" where you want to detect when an object enters an
+area without physically blocking it (like a pressure plate or a poison
+cloud).",
+  ue5-kb-website\src\data\lego-pieces-data.ts:1138:    codeSnippet: `// .h
+  ue5-kb-website\src\data\lego-pieces-data.ts:1139:UFUNCTION()
+  ue5-kb-website\src\data\lego-pieces-data.ts:1140:void
+OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+  ue5-kb-website\src\data\lego-pieces-data.ts:1141:    UPrimitiveComponent*
+OtherComp, int32 OtherBodyIndex,
+> ue5-kb-website\src\data\lego-pieces-data.ts:1158:
+<p>Because this uses a <strong>Dynamic Delegate</strong>, the function you
+bind MUST have the <code>UFUNCTION()</code> macro. If you forget it, the
+binding will fail silently and the event will never fire.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1159:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1160:
+<h4>Filtering</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1161:
+<p>Always check that <code>OtherActor</code> is not <code>nullptr</code> and
+is not <code>this</code> (yourself). You can also use
+<code>OtherActor->IsA(ACharacter::StaticClass())</code> to ensure only players
+trigger the event.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:1162:    diagram: `flowchart LR
+  ue5-kb-website\src\data\lego-pieces-data.ts:1163:                    A[Actor
+A] --"Enters Volume"--> B[Trigger Volume]
+> ue5-kb-website\src\data\lego-pieces-data.ts:1164:                    B
+--"Delegate Fires"--> C[C++ Logic]
+  ue5-kb-website\src\data\lego-pieces-data.ts:1165:                    C
+--"Filter"--> D[Apply Damage/Effect]`,
+> ue5-kb-website\src\data\lego-pieces-data.ts:1166:    concepts: ["Trigger
+Volumes","Dynamic Delegates","Event Filtering"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1167:    practices: ["Always use
+UFUNCTION() for the handler","Check for null OtherActor","Use for non-blocking
+detection"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1168:    relatedTopics: [],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1169:  },
+  ue5-kb-website\src\data\lego-pieces-data.ts:1170:  {
+  ue5-kb-website\src\data\lego-pieces-data.ts:1171:    id: "lego-043",
+> ue5-kb-website\src\data\lego-pieces-data.ts:1326:    slug:
+"dynamic-multicast-delegate",
+> ue5-kb-website\src\data\lego-pieces-data.ts:1327:    title: "Dynamic
+Multicast Delegate",
+  ue5-kb-website\src\data\lego-pieces-data.ts:1328:    type: 'lego-piece',
+> ue5-kb-website\src\data\lego-pieces-data.ts:1329:    pieceType: "Delegates &
+Events",
+> ue5-kb-website\src\data\lego-pieces-data.ts:1330:    tags:
+["Delegates","Observer Pattern","Decoupling","Event-Driven Programming"],
+> ue5-kb-website\src\data\lego-pieces-data.ts:1331:    summary: "Delegates are
+Unreal's implementation of the Observer Pattern. A class can \"Broadcast\" an
+event, and any number of other classes can \"Listen\" to it without being
+tightly coupled.",
+  ue5-kb-website\src\data\lego-pieces-data.ts:1332:    codeSnippet: `// .h
+> ue5-kb-website\src\data\lego-pieces-data.ts:1333:// 1. Declare the delegate
+type (outside class)
+> ue5-kb-website\src\data\lego-pieces-data.ts:1334:DECLARE_DYNAMIC_MULTICAST_DE
+LEGATE_OneParam(FOnHealthChanged, float, NewHealth);
+  ue5-kb-website\src\data\lego-pieces-data.ts:1335:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1336:UCLASS()
+  ue5-kb-website\src\data\lego-pieces-data.ts:1337:class AMyActor : public
+AActor {
+  ue5-kb-website\src\data\lego-pieces-data.ts:1338:    GENERATED_BODY()
+  ue5-kb-website\src\data\lego-pieces-data.ts:1339:public:
+> ue5-kb-website\src\data\lego-pieces-data.ts:1351:
+<p>Delegates are Unreal's implementation of the <strong>Observer
+Pattern</strong>. A class can "Broadcast" an event, and any number of other
+classes can "Listen" to it without being tightly coupled.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1352:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1353:                    <h4>Why
+Multicast?</h4>
+> ue5-kb-website\src\data\lego-pieces-data.ts:1354:                    <p>A
+"Single" delegate can only have one listener. A "Multicast" delegate can have
+hundreds. This is perfect for something like a "Player Death" event, where the
+UI needs to show a screen, the Sound system needs to play a sad song, and the
+GameMode needs to restart the level.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1355:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1356:
+<h4>BlueprintAssignable</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1357:                    <p>By
+adding this specifier, designers can see the event in the Blueprint Editor and
+use the <strong>"Bind Event"</strong> node to add logic without touching
+C++.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:1358:    diagram: `flowchart TD
+  ue5-kb-website\src\data\lego-pieces-data.ts:1359:
+Source[One Source Event] --"Broadcast"--> L1[Listener A: UI]
+> ue5-kb-website\src\data\lego-pieces-data.ts:1363:    practices: ["Use for
+game-wide notifications","Add 'F' prefix to delegate types","Check IsBound()
+for single delegates (not needed for multicast)"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1364:    relatedTopics: [],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1365:  },
+  ue5-kb-website\src\data\lego-pieces-data.ts:1366:  {
+  ue5-kb-website\src\data\lego-pieces-data.ts:1367:    id: "lego-052",
+  ue5-kb-website\src\data\lego-pieces-data.ts:1368:    slug:
+"adddynamic-binding",
+> ue5-kb-website\src\data\lego-pieces-data.ts:1371:    pieceType: "Delegates &
+Events",
+> ue5-kb-website\src\data\lego-pieces-data.ts:1372:    tags:
+["Delegates","Subscription Model","Function Pointers","Reflection-based
+Binding"],
+> ue5-kb-website\src\data\lego-pieces-data.ts:1373:    summary: "AddDynamic is
+the helper macro used to bind a C++ function to a Dynamic Multicast Delegate.
+It allows your class to \"subscribe\" to notifications from another object.",
+  ue5-kb-website\src\data\lego-pieces-data.ts:1374:    codeSnippet: `// Inside
+BeginPlay
+  ue5-kb-website\src\data\lego-pieces-data.ts:1375:// Connect my 'HandleDeath'
+function to the Boss's 'OnDeath' event
+  ue5-kb-website\src\data\lego-pieces-data.ts:1376:BossActor->OnDeath.AddDynami
+c(this, &AMyActor::HandleBossDeath);
+  ue5-kb-website\src\data\lego-pieces-data.ts:1377:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1378:// The Handler MUST be a
+UFUNCTION
+> ue5-kb-website\src\data\lego-pieces-data.ts:1385:
+<p><code>AddDynamic</code> is the helper macro used to bind a C++ function to
+a <strong>Dynamic Multicast Delegate</strong>. It allows your class to
+"subscribe" to notifications from another object.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1386:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1387:                    <h4>The
+UFUNCTION Rule</h4>
+> ue5-kb-website\src\data\lego-pieces-data.ts:1388:                    <p>Any
+function being bound via <code>AddDynamic</code> <strong>MUST</strong> have
+the <code>UFUNCTION()</code> macro. This is because dynamic delegates use
+Unreal's reflection system to find and call the function by name.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1389:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1390:
+<h4>Safe Unbinding</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1391:                    <p>It
+is good practice to call <code>RemoveDynamic</code> in <code>EndPlay</code>,
+although the engine is usually smart enough to clean up bindings when an
+object is destroyed.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:1392:    diagram: `flowchart LR
+  ue5-kb-website\src\data\lego-pieces-data.ts:1393:
+Source[Event Source] --"Bind"--> Target[My C++ Class]
+> ue5-kb-website\src\data\lego-pieces-data.ts:1405:    pieceType: "Delegates &
+Events",
+> ue5-kb-website\src\data\lego-pieces-data.ts:1406:    tags:
+["Delegates","Functional Programming","Scope Capturing","Inline Logic"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1407:    summary: "Sometimes you
+need a quick bit of logic that doesn't deserve its own named function in the
+header file. This is where Lambdas and TFunction come in.",
+  ue5-kb-website\src\data\lego-pieces-data.ts:1408:    codeSnippet: `// Define
+a function on the fly!
+  ue5-kb-website\src\data\lego-pieces-data.ts:1409:TFunction<void(int32)>
+MySuccessCallback = [this](int32 NewID)
+  ue5-kb-website\src\data\lego-pieces-data.ts:1410:{
+  ue5-kb-website\src\data\lego-pieces-data.ts:1411:    this->GeneratedID =
+NewID;
+> ue5-kb-website\src\data\lego-pieces-data.ts:1437:    pieceType: "Delegates &
+Events",
+> ue5-kb-website\src\data\lego-pieces-data.ts:1438:    tags:
+["Delegates","Method Overriding","Class Hierarchy","Boilerplate Safety"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:1439:    summary: "In C++, Super
+is a shorthand for \"the class I inherited from\". Calling
+Super::FunctionName() ensures that you don't accidentally \"overwrite\"
+critical engine logic.",
+  ue5-kb-website\src\data\lego-pieces-data.ts:1440:    codeSnippet: `void
+AMyPlayer::BeginPlay()
+  ue5-kb-website\src\data\lego-pieces-data.ts:1441:{
+  ue5-kb-website\src\data\lego-pieces-data.ts:1442:    // 1. ALWAYS call
+parent logic first for Lifecycle
+  ue5-kb-website\src\data\lego-pieces-data.ts:1443:    Super::BeginPlay();
+> ue5-kb-website\src\data\lego-pieces-data.ts:1991:
+<h4>Binding Delegates</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1992:                    <p>This
+is the perfect place to bind your <code>BindWidget</code> components to C++
+functions. For example, connecting a button's <code>OnClicked</code> event to
+a specific method in your class.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1993:
+  ue5-kb-website\src\data\lego-pieces-data.ts:1994:
+<h4>Timing</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:1995:
+<p>Avoid doing heavy logic in the widget constructor. Wait until
+<code>NativeConstruct</code> to ensure that all sub-widgets (buttons, text
+blocks) have been fully initialized by the engine.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:1996:    diagram: `flowchart TD
+> ue5-kb-website\src\data\lego-pieces-data.ts:2493:    slug:
+"montageplay-delegates",
+> ue5-kb-website\src\data\lego-pieces-data.ts:2494:    title: "Montage_Play &
+Delegates",
+  ue5-kb-website\src\data\lego-pieces-data.ts:2495:    type: 'lego-piece',
+  ue5-kb-website\src\data\lego-pieces-data.ts:2496:    pieceType: "Animation",
+> ue5-kb-website\src\data\lego-pieces-data.ts:2497:    tags:
+["Animation","Animation Montages","Dynamic Delegates","State Synchronization"],
+> ue5-kb-website\src\data\lego-pieces-data.ts:2498:    summary: "Montages
+allow you to play specific animations (like an attack or a reload) on top of
+your character's state machine. Using Delegates allows your gameplay code to
+know exactly when the animation finis",
+  ue5-kb-website\src\data\lego-pieces-data.ts:2499:    codeSnippet: `//
+Triggering an attack montage and reacting to its end
+  ue5-kb-website\src\data\lego-pieces-data.ts:2500:void
+AMyCharacter::PerformAttack() {
+  ue5-kb-website\src\data\lego-pieces-data.ts:2501:    UAnimInstance* AnimInst
+= GetMesh()->GetAnimInstance();
+  ue5-kb-website\src\data\lego-pieces-data.ts:2502:    if (AnimInst &&
+AttackMontage) {
+  ue5-kb-website\src\data\lego-pieces-data.ts:2503:
+AnimInst->Montage_Play(AttackMontage);
+> ue5-kb-website\src\data\lego-pieces-data.ts:2505:        FOnMontageEnded
+EndDelegate;
+> ue5-kb-website\src\data\lego-pieces-data.ts:2506:
+EndDelegate.BindUObject(this, &AMyCharacter::OnAttackFinished);
+> ue5-kb-website\src\data\lego-pieces-data.ts:2507:
+AnimInst->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+  ue5-kb-website\src\data\lego-pieces-data.ts:2508:    }
+  ue5-kb-website\src\data\lego-pieces-data.ts:2509:}
+  ue5-kb-website\src\data\lego-pieces-data.ts:2510:
+  ue5-kb-website\src\data\lego-pieces-data.ts:2511:void
+AMyCharacter::OnAttackFinished(UAnimMontage* Montage, bool bInterrupted) {
+  ue5-kb-website\src\data\lego-pieces-data.ts:2512:    bIsAttacking = false;
+> ue5-kb-website\src\data\lego-pieces-data.ts:2515:
+<p>Montages allow you to play specific animations (like an attack or a reload)
+on top of your character's state machine. Using <strong>Delegates</strong>
+allows your gameplay code to know exactly when the animation finishes.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:2516:
+  ue5-kb-website\src\data\lego-pieces-data.ts:2517:
+<h4>Handling Interruptions</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:2518:                    <p>The
+<code>bInterrupted</code> boolean is critical. If your player gets hit and
+stunned while attacking, the montage will be interrupted. Your code needs to
+know this to properly reset state or stop SFX.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:2519:    diagram: `flowchart LR
+  ue5-kb-website\src\data\lego-pieces-data.ts:2520:
+Logic[Attack Input] --> Play[Montage_Play]
+> ue5-kb-website\src\data\lego-pieces-data.ts:2524:    concepts: ["Animation
+Montages","Dynamic Delegates","State Synchronization"],
+> ue5-kb-website\src\data\lego-pieces-data.ts:2525:    practices: ["Always
+handle bInterrupted","Don't hardcode duration, use the delegate","Check if
+AnimInstance is valid"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:2526:    relatedTopics: [],
+  ue5-kb-website\src\data\lego-pieces-data.ts:2527:  },
+  ue5-kb-website\src\data\lego-pieces-data.ts:2528:  {
+  ue5-kb-website\src\data\lego-pieces-data.ts:2529:    id: "lego-203",
+  ue5-kb-website\src\data\lego-pieces-data.ts:2530:    slug:
+"uaiperceptioncomponent",
+> ue5-kb-website\src\data\lego-pieces-data.ts:2558:                    <p>The
+component manages various "Senses". When a "Stimulus" (like a player walking
+into view) is detected, it triggers the <code>OnTargetPerceptionUpdated</code>
+delegate. This allows your AI to react only when something actually
+changes.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:2559:    diagram: `flowchart TD
+  ue5-kb-website\src\data\lego-pieces-data.ts:2560:
+Perc[Perception Component] --> Sight[Sight Sense]
+  ue5-kb-website\src\data\lego-pieces-data.ts:2561:                    Perc
+--> Hear[Hearing Sense]
+  ue5-kb-website\src\data\lego-pieces-data.ts:2562:                    Sight
+--"Detected"--> Event[OnTargetPerceptionUpdated]
+  ue5-kb-website\src\data\lego-pieces-data.ts:2563:                    Event
+--> BlackB[Update Blackboard]`,
+> ue5-kb-website\src\data\lego-pieces-data.ts:2720:    practices: ["Use for
+Save/Load logic","Avoid logic that depends on a specific World","Clean up
+delegates in Deinitialize()"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:2721:    relatedTopics: [],
+  ue5-kb-website\src\data\lego-pieces-data.ts:2722:  },
+  ue5-kb-website\src\data\lego-pieces-data.ts:2723:  {
+  ue5-kb-website\src\data\lego-pieces-data.ts:2724:    id: "lego-213",
+  ue5-kb-website\src\data\lego-pieces-data.ts:2725:    slug: "uworldsubsystem",
+> ue5-kb-website\src\data\lego-pieces-data.ts:2967:    // Perfect place to
+bind delegates between components.
+  ue5-kb-website\src\data\lego-pieces-data.ts:2968:    if (HealthComp &&
+UIComp) {
+  ue5-kb-website\src\data\lego-pieces-data.ts:2969:
+HealthComp->OnHealthChanged.AddDynamic(UIComp, &UMyUIComp::UpdateBar);
+  ue5-kb-website\src\data\lego-pieces-data.ts:2970:    }
+  ue5-kb-website\src\data\lego-pieces-data.ts:2971:}`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:2972:    explanation:
+`<h3>Cross-Component Wiring</h3>
+> ue5-kb-website\src\data\lego-pieces-data.ts:2976:                    <p>It's
+the safest place to cache references to your own components and bind their
+delegates to each other. By the time <code>BeginPlay</code> runs, your
+components are already "talking" to each other, preventing many initialization
+order bugs.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:2977:    diagram: `flowchart TD
+  ue5-kb-website\src\data\lego-pieces-data.ts:2978:
+Constructor[Constructor] --> PreInit[PreInitializeComponents]
+  ue5-kb-website\src\data\lego-pieces-data.ts:2979:                    PreInit
+--> CompInit[Components Initialized]
+  ue5-kb-website\src\data\lego-pieces-data.ts:2980:
+CompInit --> PostInit[PostInitializeComponents]
+  ue5-kb-website\src\data\lego-pieces-data.ts:2981:
+PostInit --> BeginPlay[BeginPlay]`,
+> ue5-kb-website\src\data\lego-pieces-data.ts:3300:    Handle =
+Manager.RequestAsyncLoad(Path, FStreamableDelegate::CreateUObject(this,
+&AMyActor::OnLoadComplete));
+  ue5-kb-website\src\data\lego-pieces-data.ts:3301:}
+  ue5-kb-website\src\data\lego-pieces-data.ts:3302:
+  ue5-kb-website\src\data\lego-pieces-data.ts:3303:void
+AMyActor::OnLoadComplete() {
+  ue5-kb-website\src\data\lego-pieces-data.ts:3304:    UStaticMesh* Loaded =
+LazyMesh.Get();
+  ue5-kb-website\src\data\lego-pieces-data.ts:3305:
+MeshComp->SetStaticMesh(Loaded);
+> ue5-kb-website\src\data\lego-pieces-data.ts:3310:
+<h4>Delegates</h4>
+> ue5-kb-website\src\data\lego-pieces-data.ts:3311:
+<p>Since the load happens in the background, you provide a
+<strong>Delegate</strong> (a function) that the engine will call automatically
+once the asset is ready. This is the professional way to handle spawning
+enemies or changing equipment during gameplay.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:3312:    diagram: `flowchart LR
+  ue5-kb-website\src\data\lego-pieces-data.ts:3313:
+Request[Asset Path] --> Manager[Streamable Manager]
+  ue5-kb-website\src\data\lego-pieces-data.ts:3314:                    Manager
+--"Async"--> Load[Loading in Background]
+  ue5-kb-website\src\data\lego-pieces-data.ts:3315:                    Load
+--"Callback"--> Ready[Asset Ready to Use]`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:3316:    concepts:
+["Asynchronous I/O","Thread Safety","Hitch Prevention"],
+> ue5-kb-website\src\data\lego-pieces-data.ts:3380:    slug:
+"single-cast-delegates",
+> ue5-kb-website\src\data\lego-pieces-data.ts:3381:    title: "Single-Cast
+Delegates",
+  ue5-kb-website\src\data\lego-pieces-data.ts:3382:    type: 'lego-piece',
+> ue5-kb-website\src\data\lego-pieces-data.ts:3383:    pieceType: "Delegates &
+Events",
+> ue5-kb-website\src\data\lego-pieces-data.ts:3384:    tags:
+["Delegates","Return Values","Tight Coupling","Callback Patterns"],
+> ue5-kb-website\src\data\lego-pieces-data.ts:3385:    summary: "Unlike
+Multicast delegates which \"Broadcast\" to everyone, a Single-cast delegate is
+a private line between two objects. Its biggest advantage is that it can
+**Return a Value**.",
+  ue5-kb-website\src\data\lego-pieces-data.ts:3386:    codeSnippet: `// .h -
+Declaration
+> ue5-kb-website\src\data\lego-pieces-data.ts:3387:DECLARE_DELEGATE_RetVal_OneP
+aram(bool, FCheckCanInteract, AActor*);
+  ue5-kb-website\src\data\lego-pieces-data.ts:3388:
+  ue5-kb-website\src\data\lego-pieces-data.ts:3389:// Class Property
+> ue5-kb-website\src\data\lego-pieces-data.ts:3390:FCheckCanInteract
+CanInteractDelegate;
+  ue5-kb-website\src\data\lego-pieces-data.ts:3391:
+  ue5-kb-website\src\data\lego-pieces-data.ts:3392:// .cpp - Usage
+> ue5-kb-website\src\data\lego-pieces-data.ts:3393:if
+(CanInteractDelegate.IsBound()) {
+> ue5-kb-website\src\data\lego-pieces-data.ts:3394:    bool bAllowed =
+CanInteractDelegate.Execute(PlayerActor);
+  ue5-kb-website\src\data\lego-pieces-data.ts:3395:}`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:3396:    explanation:
+`<h3>One-to-One Communication</h3>
+> ue5-kb-website\src\data\lego-pieces-data.ts:3397:
+<p>Unlike Multicast delegates which "Broadcast" to everyone, a Single-cast
+delegate is a private line between two objects. Its biggest advantage is that
+it can **Return a Value**.</p>
+  ue5-kb-website\src\data\lego-pieces-data.ts:3398:
+  ue5-kb-website\src\data\lego-pieces-data.ts:3399:                    <h4>Why
+use it?</h4>
+  ue5-kb-website\src\data\lego-pieces-data.ts:3400:                    <p>Use
+it when one system needs to "Ask a Question" of another system. For example, a
+Combat System might ask an Inventory System: "Does the player have enough
+arrows to fire?" before playing the animation.</p>`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:3401:    diagram: `flowchart LR
+> ue5-kb-website\src\data\lego-pieces-data.ts:3402:
+Sender[System A] --"Question?"--> Del[Delegate]
+  ue5-kb-website\src\data\lego-pieces-data.ts:3403:                    Del
+--"Execution"--> Receiver[System B]
+  ue5-kb-website\src\data\lego-pieces-data.ts:3404:
+Receiver --"Answer"--> Sender`,
+  ue5-kb-website\src\data\lego-pieces-data.ts:3405:    concepts: ["Return
+Values","Tight Coupling","Callback Patterns"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:3406:    practices: ["Always use
+IsBound() before Execute()","Use for logic gates/checks","Binding is done via
+BindUObject or BindSP"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:3407:    relatedTopics: [],
+> ue5-kb-website\src\data\lego-pieces-data.ts:3854:    pieceType: "Delegates &
+Events",
+> ue5-kb-website\src\data\lego-pieces-data.ts:3855:    tags:
+["Delegates","Lambda Optimization","Stack vs Heap","Functional C++"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:3856:    summary: "When you want
+to pass a Lambda into a function, TFunctionRef is the fastest way to do it.
+Unlike TFunction, it does not allocate memory on the heap.",
+  ue5-kb-website\src\data\lego-pieces-data.ts:3857:    codeSnippet: `//
+Function that takes a lambda as an argument
+  ue5-kb-website\src\data\lego-pieces-data.ts:3858:void
+ProcessActors(TFunctionRef<void(AActor*)> Callback) {
+  ue5-kb-website\src\data\lego-pieces-data.ts:3859:    for (AActor* A :
+AllActors) {
+  ue5-kb-website\src\data\lego-pieces-data.ts:3860:        Callback(A);
+> ue5-kb-website\src\data\lego-pieces-data.ts:3877:    practices: ["Use for
+temporary loops/filters","Never store as a member variable","Faster than
+standard Delegates for quick logic"],
+  ue5-kb-website\src\data\lego-pieces-data.ts:3878:    relatedTopics: [],
+  ue5-kb-website\src\data\lego-pieces-data.ts:3879:  },
+  ue5-kb-website\src\data\lego-pieces-data.ts:3880:  {
+  ue5-kb-website\src\data\lego-pieces-data.ts:3881:    id: "lego-286",
+  ue5-kb-website\src\data\lego-pieces-data.ts:3882:    slug:
+"static-mechanics",
