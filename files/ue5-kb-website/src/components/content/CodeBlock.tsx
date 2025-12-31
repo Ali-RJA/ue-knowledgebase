@@ -96,7 +96,7 @@ export const CodeBlock = ({ code, language, inline = false, legoPieces = [] }: C
 
               {/* Visible tags when toggled or single piece */}
               <Box sx={{ display: 'flex', gap: 0.5 }}>
-                {displayPieces.map((piece, index) => (
+                {displayPieces.map((piece) => (
                   <Tooltip key={piece.slug} title={`Learn: ${piece.label || piece.slug}`}>
                     <Chip
                       component={Link}
