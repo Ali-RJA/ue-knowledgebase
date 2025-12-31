@@ -264,6 +264,53 @@
             color: #61dafb;
             font-size: 1.2rem;
         }
+        
+        /* Puzzle Tag Styles - Lego Piece References */
+        .puzzle-tag {
+            display: inline-flex;
+            align-items: center;
+            float: right;
+            margin-left: 12px;
+            padding: 1px 6px;
+            background: rgba(187, 134, 252, 0.15);
+            border: 1px solid rgba(187, 134, 252, 0.4);
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-family: 'Segoe UI', sans-serif;
+            color: #bb86fc;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.7;
+        }
+        
+        .puzzle-tag:hover {
+            opacity: 1;
+            background: rgba(187, 134, 252, 0.25);
+            border-color: #bb86fc;
+            transform: translateY(-1px);
+        }
+        
+        .puzzle-tag::before {
+            content: '🧩';
+            font-size: 0.55rem;
+            margin-right: 3px;
+        }
+        
+        .ref-card pre {
+            position: relative;
+        }
+        
+        .code-line {
+            display: block;
+            position: relative;
+        }
+        
+        .code-line .puzzle-tag {
+            position: absolute;
+            right: 0;
+            top: 0;
+        }
     </style>
 </head>
 <body>
@@ -756,7 +803,7 @@ flowchart TB
                 <h3>1. Delegate Declarations</h3>
                 <div class="file-path">📍HitWindowComponent.h</div>
                 <pre><code>// Signal-only (no payload)
-DECLARE_MULTICAST_DELEGATE(FOnAttackWindow);
+DECLARE_MULTICAST_DELEGATE(FOnAttackWindow); <a class="puzzle-tag" href="/lego/dynamic-multicast-delegate" title="Learn: Dynamic Multicast Delegate">Delegate</a>
 
 // With parameters (C++ only)
 DECLARE_MULTICAST_DELEGATE_TwoParams(
@@ -782,7 +829,7 @@ FDelegateHandle WindowHandle;
 void AHeroCharacter::BeginPlay() {
     Super::BeginPlay();
     
-    HitWindow = FindComponentByClass
+    HitWindow = FindComponentByClass <a class="puzzle-tag" href="/lego/findcomponentbyclass" title="Learn: FindComponentByClass">FindComp</a>
         &lt;UHitWindowComponent&gt;();
         
     if (HitWindow) {
@@ -846,7 +893,7 @@ void UAnimNotify_OpenHitWindow::Notify(...) {
     TArray&lt;AActor*&gt; Victims;
     TArray&lt;FHitResult&gt; OutHits;
     
-    FCollisionQueryParams Params;
+    FCollisionQueryParams Params; <a class="puzzle-tag" href="/lego/fcollisionqueryparams" title="Learn: FCollisionQueryParams">Params</a>
     Params.AddIgnoredActor(this);
     Params.bTraceComplex = false;
     Params.bReturnPhysicalMaterial = true;
@@ -859,7 +906,7 @@ void UAnimNotify_OpenHitWindow::Notify(...) {
     FVector End = Start + 
         GetActorForwardVector() * 200.f;
     
-    bool bHit = GetWorld()->SweepMultiByChannel(
+    bool bHit = GetWorld()->SweepMultiByChannel( <a class="puzzle-tag" href="/lego/sweepsinglebychannel" title="Learn: SweepSingleByChannel">Sweep</a>
         OutHits, Start, End, FQuat::Identity,
         ECC_GameTraceChannel1, // Attack channel
         Shape, Params
@@ -907,7 +954,7 @@ public:
         if (!bCanTakeDamage || Health <= 0.f) 
             return;
         
-        Health = FMath::Clamp(
+        Health = FMath::Clamp( <a class="puzzle-tag" href="/lego/fmathclamp" title="Learn: FMath::Clamp">Clamp</a>
             Health - Amt, 0.f, MaxHealth);
         
         OnDamagedNative.Broadcast(Amt, Src);
@@ -965,7 +1012,7 @@ void OnTakeAnyDamage(AActor* Damaged,
                 <div class="file-path">📍 HeroCharacter.cpp - Multiplayer</div>
                 <pre><code>void AHeroCharacter::HandleAttackWindow() {
     // ⚠️ CRITICAL: Only server processes damage
-    if (!HasAuthority()) return;
+    if (!HasAuthority()) return; <a class="puzzle-tag" href="/lego/hasauthority-networking" title="Learn: HasAuthority() (Networking)">Network</a>
     
     for (AActor* Victim : QueryVictims()) {
         if (auto* HC = Victim->FindComponentByClass
@@ -1042,7 +1089,7 @@ void AHeroCharacter::DebugDrawAttack() {
         GetActorForwardVector() * 200.f;
     
     // Draw sweep sphere
-    DrawDebugSphere(
+    DrawDebugSphere( <a class="puzzle-tag" href="/lego/drawdebugline" title="Learn: DrawDebugLine">Debug</a>
         GetWorld(), Start, AttackRadius,
         12, FColor::Yellow, false, 0.5f);
     
@@ -1088,7 +1135,7 @@ if (IsValid(Target)) {
 }
 
 // ✅ Weak pointer for caching
-TWeakObjectPtr&lt;AActor&gt; WeakTarget;
+TWeakObjectPtr&lt;AActor&gt; WeakTarget; <a class="puzzle-tag" href="/lego/tweakobjectptr" title="Learn: TWeakObjectPtr">WeakPtr</a>
 if (WeakTarget.IsValid()) {
     WeakTarget->TakeDamage(50.f);
 }
@@ -1103,7 +1150,7 @@ auto SafeLambda = [WeakThis]() {
 
 // Timer with weak capture
 FTimerDelegate TimerDel;
-TimerDel.BindWeakLambda(this, [this]() {
+TimerDel.BindWeakLambda(this, [this]() { <a class="puzzle-tag" href="/lego/ftimerhandle-settimer" title="Learn: FTimerHandle & SetTimer">Timer</a>
     // Safe - timer auto-cancels if 'this' dies
     DoDelayedThing();
 });
@@ -1155,12 +1202,12 @@ private:
 };
 
 // HeroCharacter.cpp
-void AHeroCharacter::BeginPlay()
+void AHeroCharacter::BeginPlay() <a class="puzzle-tag" href="/lego/beginplay" title="Learn: BeginPlay()">Begin</a>
 {
     Super::BeginPlay();
 
     // Find the HitWindowComponent on this actor
-    HitWindow = FindComponentByClass&lt;UHitWindowComponent&gt;();
+    HitWindow = FindComponentByClass&lt;UHitWindowComponent&gt;(); <a class="puzzle-tag" href="/lego/findcomponentbyclass" title="Learn: FindComponentByClass">FindComp</a>
 
     if (HitWindow)
     {
@@ -1304,7 +1351,7 @@ void UAnimNotify_OpenHitWindow::Notify(
     if (!Owner) return;
 
     // Find the HitWindowComponent on that actor
-    if (auto* HW = Owner->FindComponentByClass&lt;UHitWindowComponent&gt;())
+    if (auto* HW = Owner->FindComponentByClass&lt;UHitWindowComponent&gt;()) <a class="puzzle-tag" href="/lego/findcomponentbyclass" title="Learn: FindComponentByClass">FindComp</a>
     {
         // Tell it to open the window!
         HW->OpenWindow();
@@ -1331,7 +1378,7 @@ void UAnimNotify_OpenHitWindow::Notify(
 #include "HitWindowComponent.generated.h"
 
 // DECLARE the delegate type - this creates a new C++ type
-DECLARE_MULTICAST_DELEGATE(FOnAttackWindow);
+DECLARE_MULTICAST_DELEGATE(FOnAttackWindow); <a class="puzzle-tag" href="/lego/dynamic-multicast-delegate" title="Learn: Dynamic Multicast Delegate">Delegate</a>
 
 UCLASS(ClassGroup=(Combat), meta=(BlueprintSpawnableComponent))
 class MYGAME_API UHitWindowComponent : public UActorComponent
@@ -2022,6 +2069,16 @@ void AHeroCharacter::Multicast_PlayHitFX_Implementation(
             panY = 20;
             updateTransform();
         }, 1500);
+        
+        // Puzzle Tag Navigation
+        document.querySelectorAll('.puzzle-tag').forEach(tag => {
+            tag.addEventListener('click', (e) => {
+                e.preventDefault();
+                const href = tag.getAttribute('href');
+                // Navigate to the lego piece on the main website
+                window.open(href, '_blank');
+            });
+        });
     </script>
 </body>
 </html>
