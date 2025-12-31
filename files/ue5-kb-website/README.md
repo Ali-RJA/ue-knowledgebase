@@ -172,9 +172,19 @@ No environment variables are required for basic functionality.
 
 This project is part of the Hattin UE5 Knowledge Base.
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Complete architecture guide - components, theming, data model |
+| [FLOW.md](./FLOW.md) | Data flow diagrams - how content moves from files to UI |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Quick-start guide for adding new content |
+
 ## Contributing
 
-To add new content:
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for a step-by-step guide.
+
+**Quick steps:**
 1. Add the source file to `public/content/`
 2. Update `src/data/content-index.ts`
 3. Add any new tags to `src/data/tags.ts`
