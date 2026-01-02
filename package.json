@@ -1,0 +1,13 @@
+{
+  "name": "ue5-kb-website-wrapper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install": "cd ue5-kb-website && npm install",
+    "dev": "cd ue5-kb-website && npm run dev",
+    "build": "cd ue5-kb-website && npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
