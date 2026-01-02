@@ -1,3 +1,6 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
 [package]
 name = "ue5-kb-website"
 description = "UE5 Knowledgebase Website with custom page creation"
