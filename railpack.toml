@@ -1,0 +1,5 @@
+[build]
+buildCommand = "cd ue5-kb-website && npm install"
+
+[start]
+startCommand = "cd ue5-kb-website && npm run dev"
