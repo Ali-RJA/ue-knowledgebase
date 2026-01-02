@@ -11,7 +11,8 @@
  *    - DATABASE_URL (alternative connection string)
  */
 
-import { MongoClient, Db, Collection, ObjectId, Document } from 'mongodb';
+import { MongoClient, Db, Collection, ObjectId } from 'mongodb';
+import type { Document } from 'mongodb';
 
 // Environment variables (set in Railway dashboard)
 const mongoUrl = import.meta.env.VITE_MONGO_URL || import.meta.env.VITE_DATABASE_URL;

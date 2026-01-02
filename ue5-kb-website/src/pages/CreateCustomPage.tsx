@@ -27,7 +27,7 @@ import {
   Tabs,
   Tab,
   Collapse,
-  Grid2 as Grid,
+  Grid,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -573,7 +573,7 @@ export const CreateCustomPage = () => {
 
       <Grid container spacing={4}>
         {/* Form Section */}
-        <Grid size={{ xs: 12, lg: 7 }}>
+        <Grid xs={12} lg={7}>
           <Paper
             elevation={0}
             sx={{
@@ -965,7 +965,7 @@ export const CreateCustomPage = () => {
         </Grid>
 
         {/* Preview Section */}
-        <Grid size={{ xs: 12, lg: 5 }}>
+        <Grid xs={12} lg={5}>
           <Paper
             elevation={0}
             sx={{
