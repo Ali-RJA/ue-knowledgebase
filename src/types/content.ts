@@ -1,6 +1,22 @@
-export type ContentType = 'topic' | 'lego-piece' | 'diagram' | 'collection';
+export type ContentType = 'topic' | 'lego-piece' | 'diagram' | 'collection' | 'custom-page';
 
-export type Category = 'architecture' | 'core-systems' | 'control' | 'design';
+export type Category = 'architecture' | 'core-systems' | 'control' | 'design' | 'custom';
+
+// Block types for custom pages
+export type BlockType = 'code' | 'notes' | 'mermaid';
+
+export type CodeLanguage =
+  | 'cpp' | 'csharp' | 'blueprint'
+  | 'html' | 'css' | 'javascript' | 'typescript'
+  | 'json' | 'python' | 'sql' | 'bash' | 'shell';
+
+export interface ContentBlock {
+  id: string;
+  type: BlockType;
+  content: string;
+  language?: CodeLanguage;
+  title?: string;
+}
 
 export interface BaseContent {
   id: string;
@@ -44,7 +60,27 @@ export interface Collection extends BaseContent {
   sourcePath: string;
 }
 
-export type ContentItem = Topic | LegoPiece | Diagram | Collection;
+export interface CustomPage extends BaseContent {
+  type: 'custom-page';
+  category: Category;
+  blocks: ContentBlock[];
+  published: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type ContentItem = Topic | LegoPiece | Diagram | Collection | CustomPage;
+
+// JSON input structure for creating custom pages
+export interface CustomPageInput {
+  title: string;
+  slug: string;
+  summary: string;
+  category: Category;
+  tags: string[];
+  blocks: ContentBlock[];
+  published: boolean;
+}
 
 export interface TagInfo {
   name: string;
