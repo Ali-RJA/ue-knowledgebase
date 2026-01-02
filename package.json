@@ -5,7 +5,8 @@
   "scripts": {
     "install": "cd ue5-kb-website && npm install",
     "dev": "cd ue5-kb-website && npm run dev",
-    "build": "cd ue5-kb-website && npm run build"
+    "build": "cd ue5-kb-website && npm run build",
+    "start": "cd ue5-kb-website && npm run dev"
   },
   "engines": {
     "node": ">=18"
