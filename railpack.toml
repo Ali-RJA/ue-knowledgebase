@@ -1,5 +1,7 @@
 [build]
-buildCommand = "cd ue5-kb-website && npm install"
+buildCommand = "npm install"
+rootDir = "ue5-kb-website"
 
 [start]
-startCommand = "cd ue5-kb-website && npm run dev"
+startCommand = "npm run dev"
+rootDir = "ue5-kb-website"
