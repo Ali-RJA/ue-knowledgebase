@@ -1,0 +1,15 @@
+{
+  "name": "ue5-kb-website-wrapper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Wrapper for ue5-kb-website deployment",
+  "engines": {
+    "node": ">=20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "install": "cd ue5-kb-website && npm install",
+    "dev": "cd ue5-kb-website && npm run dev",
+    "build": "cd ue5-kb-website && npm run build",
+    "start": "cd ue5-kb-website && npm run dev"
+  }
+}

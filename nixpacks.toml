@@ -1,8 +1,2 @@
 [variables]
 NIXPACKS_NODE_VERSION = "22"
-
-[phases.install]
-cmds = ["cd ue5-kb-website && npm install"]
-
-[start]
-cmd = "cd ue5-kb-website && npm run dev"
