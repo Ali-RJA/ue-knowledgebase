@@ -1,0 +1,11 @@
+[package]
+name = "ue5-kb-website"
+description = "UE5 Knowledgebase Website with custom page creation"
+buildCommand = "npm install"
+
+[env]
+VITE_SUPABASE_URL = { required = false }
+VITE_SUPABASE_ANON_KEY = { required = false }
+
+[start]
+cmd = "npm run dev"

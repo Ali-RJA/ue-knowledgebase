@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant C as C++ Code (ActivateAbility)
+    participant A as Animation (Montage)
+    participant E as Event Handler (OnHitEventReceived)
+
+    C->>A: Start Swing (ReadyForActivation)
+    C->>C: Setup "Ear" for Hit Tag
+    Note over C: ActivateAbility() finishes instantly.
+    Note over A: Animation is playing... frame 1... frame 10...
+    A->>E: I hit something! (Tag Sent)
+    E->>E: Calculate Damage!
+    Note over A: Animation finishes...
+    A->>C: Animation is Done! (OnCompleted)
+    C->>C: EndAbility()

@@ -1,0 +1,13 @@
+flowchart TD
+    subgraph Frame_1 ["FRAME 1 (The Drawing Board)"]
+        Code1["1. Start Montage Task"]
+        Code2["2. Start Hit Listening Task"]
+        Code3["3. End of ActivateAbility()"]
+    end
+
+    subgraph Frame_2 ["FRAME 2 (The Flip)"]
+        Anim1["Animation starts moving"]
+        Listen1["Hit Task is already watching"]
+    end
+
+    Frame_1 --> Frame_2
