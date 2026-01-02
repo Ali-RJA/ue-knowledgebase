@@ -5,8 +5,14 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true,
-    port: 3000,
+    host: '0.0.0.0', // Listen on all interfaces for Railway
+    port: parseInt(process.env.PORT || '3000'), // Use Railway's PORT
+    strictPort: false, // Allow fallback if port is taken
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: parseInt(process.env.PORT || '3000'),
+    strictPort: false,
   },
   build: {
     outDir: 'dist',
