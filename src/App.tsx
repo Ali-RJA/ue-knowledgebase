@@ -13,6 +13,8 @@ import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { AnimNotifyArchitecturePage } from './pages/AnimNotifyArchitecturePage';
 import { SearchPage } from './pages/SearchPage';
 import { AboutPage } from './pages/AboutPage';
+import { CreateCustomPage } from './pages/CreateCustomPage';
+import { CustomPageDetailPage } from './pages/CustomPageDetailPage';
 
 function App() {
   return (
@@ -39,6 +41,10 @@ function App() {
             <Route path="/collections" element={<CollectionsPage />} />
             <Route path="/collection/anim-notify-architecture" element={<AnimNotifyArchitecturePage />} />
             <Route path="/collection/:slug" element={<CollectionDetailPage />} />
+
+            {/* Custom Pages */}
+            <Route path="/create" element={<CreateCustomPage />} />
+            <Route path="/custom/:slug" element={<CustomPageDetailPage />} />
 
             {/* Utility pages */}
             <Route path="/search" element={<SearchPage />} />
