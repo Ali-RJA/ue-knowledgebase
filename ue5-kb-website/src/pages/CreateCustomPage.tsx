@@ -5,7 +5,7 @@ import {
   Button,
   Typography,
   Paper,
-  Grid2,
+  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -332,9 +332,9 @@ export const CreateCustomPage = () => {
         Create a new page with dynamic content blocks. Add code, notes, or mermaid diagrams.
       </Typography>
 
-      <Grid2 container spacing={4}>
+      <Grid container spacing={4}>
         {/* Form Section */}
-        <Grid2 size={{ xs: 12, lg: 7 }}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Paper
             elevation={0}
             sx={{
@@ -640,10 +640,10 @@ export const CreateCustomPage = () => {
               </Button>
             </Box>
           </Paper>
-        </Grid2>
+        </Grid>
 
         {/* Preview Section */}
-        <Grid2 size={{ xs: 12, lg: 5 }}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Paper
             elevation={0}
             sx={{
@@ -680,8 +680,8 @@ export const CreateCustomPage = () => {
               </pre>
             </Paper>
           </Paper>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
 
       {/* Save Dialog */}
       <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)} maxWidth="sm" fullWidth>
