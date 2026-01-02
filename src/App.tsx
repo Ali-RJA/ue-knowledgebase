@@ -15,6 +15,7 @@ import { SearchPage } from './pages/SearchPage';
 import { AboutPage } from './pages/AboutPage';
 import { CreateCustomPage } from './pages/CreateCustomPage';
 import { CustomPageDetailPage } from './pages/CustomPageDetailPage';
+import { CustomPagesListPage } from './pages/CustomPagesListPage';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="/collection/:slug" element={<CollectionDetailPage />} />
 
             {/* Custom Pages */}
+            <Route path="/custom-pages" element={<CustomPagesListPage />} />
             <Route path="/create" element={<CreateCustomPage />} />
             <Route path="/custom/:slug" element={<CustomPageDetailPage />} />
 
