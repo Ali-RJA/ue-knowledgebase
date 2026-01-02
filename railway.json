@@ -1,0 +1,14 @@
+{
+  "$schema": "https://railway.app/schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "cd ue5-kb-website && npm install"
+  },
+  "deploy": {
+    "startCommand": "cd ue5-kb-website && npm run dev",
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 30,
+    "restartPolicy": "ON_FAILURE",
+    "maxRetries": 3
+  }
+}
