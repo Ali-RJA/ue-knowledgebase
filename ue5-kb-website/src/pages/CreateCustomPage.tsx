@@ -5,7 +5,7 @@ import {
   Button,
   Typography,
   Paper,
-  Grid,
+  Grid2,
   FormControl,
   InputLabel,
   Select,
@@ -332,9 +332,9 @@ export const CreateCustomPage = () => {
         Create a new page with dynamic content blocks. Add code, notes, or mermaid diagrams.
       </Typography>
 
-      <Grid container spacing={4}>
+      <Grid2 container spacing={4}>
         {/* Form Section */}
-        <Grid item xs={12} lg={7}>
+        <Grid2 size={{ xs: 12, lg: 7 }}>
           <Paper
             elevation={0}
             sx={{
@@ -539,7 +539,11 @@ export const CreateCustomPage = () => {
                           value={block.content}
                           onChange={(e) => updateBlock(block.id, { content: e.target.value })}
                           placeholder="Enter your code here..."
-                          fontFamily="monospace"
+                          sx={{
+                            '& .MuiInputBase-input': {
+                              fontFamily: 'monospace',
+                            },
+                          }}
                         />
                       </>
                     )}
@@ -567,7 +571,6 @@ export const CreateCustomPage = () => {
                           placeholder="flowchart TD
     A[Start] --> B[Process]
     B --> C[End]"
-                          fontFamily="monospace"
                           sx={{
                             '& .MuiInputBase-input': {
                               fontFamily: 'monospace',
@@ -637,10 +640,10 @@ export const CreateCustomPage = () => {
               </Button>
             </Box>
           </Paper>
-        </Grid>
+        </Grid2>
 
         {/* Preview Section */}
-        <Grid item xs={12} lg={5}>
+        <Grid2 size={{ xs: 12, lg: 5 }}>
           <Paper
             elevation={0}
             sx={{
@@ -677,8 +680,8 @@ export const CreateCustomPage = () => {
               </pre>
             </Paper>
           </Paper>
-        </Grid>
-      </Grid>
+        </Grid2>
+      </Grid2>
 
       {/* Save Dialog */}
       <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)} maxWidth="sm" fullWidth>
