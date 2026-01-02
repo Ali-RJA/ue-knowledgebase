@@ -18,7 +18,7 @@ import ExtensionIcon from '@mui/icons-material/Extension';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import InfoIcon from '@mui/icons-material/Info';
-import AddBoxIcon from '@mui/icons-material/AddBox';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 const menuItems = [
   {
@@ -53,9 +53,13 @@ const menuItems = [
     icon: <CollectionsIcon />,
   },
   {
-    title: 'Create Page',
-    path: '/create',
-    icon: <AddBoxIcon />,
+    title: 'Custom Pages',
+    path: '/custom-pages',
+    icon: <DescriptionIcon />,
+    children: [
+      { title: 'Browse All', path: '/custom-pages' },
+      { title: 'Create New', path: '/create' },
+    ],
   },
   {
     title: 'About',
