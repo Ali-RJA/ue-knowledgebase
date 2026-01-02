@@ -13,9 +13,9 @@
   },
   "env": {
     "groups": {
-      "supabase": [
-        "VITE_SUPABASE_URL",
-        "VITE_SUPABASE_ANON_KEY"
+      "mongodb": [
+        "VITE_MONGO_URL",
+        "VITE_DATABASE_URL"
       ]
     }
   }

@@ -25,6 +25,10 @@ import {
   Menu,
   ListItemIcon,
   ListItemText,
+  Tabs,
+  Tab,
+  Collapse,
+  Snackbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,9 +43,11 @@ import {
   Save as SaveIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
+import { useSnackbar } from 'notqueue';
 import mermaid from 'mermaid';
 import type { Category } from '../types/content';
-import { tagColors, getTagColor } from '../data/tags';
+import { tagColors, getTagColor, allTags } from '../data/tags';
+import { customPagesApi, isMongoConfigured, CustomPageBlock } from '../lib/mongodb';
 
 // Block types
 type BlockType = 'code' | 'notes' | 'mermaid';
@@ -62,6 +68,24 @@ interface CustomPageFormData {
   blocks: ContentBlock[];
 }
 
+// JSON input mode type
+type InputMode = 'manual' | 'json';
+
+// JSON schema interface
+interface JsonPageInput {
+  title: string;
+  summary: string;
+  category: string;
+  tags: string[];
+  blocks: Array<{
+    id?: string;
+    type: 'code' | 'notes' | 'mermaid';
+    content: string;
+    language?: string;
+    title?: string;
+  }>;
+}
+
 const categories: Category[] = ['architecture', 'core-systems', 'control', 'design'];
 const suggestedTags = Object.keys(tagColors);
 
@@ -77,7 +101,7 @@ const blockTypeIcons: Record<BlockType, React.ReactNode> = {
   mermaid: <DiagramIcon fontSize="small" />,
 };
 
-// Database types (for Supabase integration)
+// Database types (for MongoDB integration)
 interface CustomPageRecord {
   id: string;
   title: string;
@@ -89,6 +113,180 @@ interface CustomPageRecord {
   created_at: string;
 }
 
+// Generate JSON prompt for copy functionality
+const generateJsonPrompt = (): string => {
+  const availableTags = allTags.map(t => t.name).join(', ');
+
+  return `JSON Page Creation Prompt for UE5 Knowledgebase
+
+## Overview
+Use this JSON format to create custom pages for the UE5 Knowledgebase website. This format allows you to structure complex technical content with multiple content blocks including code examples, markdown notes, and Mermaid diagrams.
+
+## JSON Structure
+
+{
+  "title": "Page Title",
+  "summary": "A concise 1-2 sentence summary (max 200 characters recommended)",
+  "category": "Category Name",
+  "tags": ["Tag1", "Tag2", "Tag3"],
+  "blocks": [
+    {
+      "type": "code|notes|mermaid",
+      "content": "Block content",
+      "language": "cpp|typescript|python (only for code blocks)",
+      "title": "Optional block title"
+    }
+  ]
+}
+
+## Block Types
+
+1. CODE BLOCKS
+   - Use type: "code"
+   - Required fields: content, language
+   - Optional: title
+   - Supported languages: cpp, typescript, python, javascript, bash, html, css
+   - Example:
+     {
+       "type": "code",
+       "language": "cpp",
+       "title": "Character Movement",
+       "content": "// Your C++ code here..."
+     }
+
+2. NOTES BLOCKS
+   - Use type: "notes"
+   - Supports Markdown formatting
+   - Use for explanations, tutorials, documentation
+   - Example:
+     {
+       "type": "notes",
+       "content": "## Introduction\\n\\nThis guide covers..."
+     }
+
+3. MERMAID DIAGRAMS
+   - Use type: "mermaid"
+   - Content should be valid Mermaid syntax
+   - Example:
+     {
+       "type": "mermaid",
+       "content": "graph TD\\n    A[Start] --> B[Process]\\n    B --> C[End]"
+     }
+
+## Best Practices
+
+### Title
+- Keep it concise (max 80 characters)
+- Use clear, descriptive naming
+- Include key technology name (e.g., "GAS Attribute Sets")
+
+### Summary
+- Maximum 200 characters
+- Summarize the page content in 1-2 sentences
+- Include key takeaways or outcomes
+- Avoid filler words
+
+### Tags
+- Use 3-7 tags per page
+- Available tags: ${availableTags}
+- Include specific technology tags (GAS, AI, Animation)
+- Include pattern tags (Observer, State Machine)
+- Include category tags (Character, Combat, Data)
+
+### Blocks
+- Start with an introduction notes block
+- Alternate between code and notes for tutorials
+- Use mermaid diagrams for complex flows
+- Keep code examples focused and commented
+- Each block should serve a clear purpose
+
+## Example Complete Page
+
+{
+  "title": "GAS Attribute Set Implementation",
+  "summary": "Learn how to implement GAS Attribute Sets for managing character stats and attributes in Unreal Engine 5.",
+  "category": "GAS",
+  "tags": ["GAS", "ASC", "Data", "Character", "Attribute"],
+  "blocks": [
+    {
+      "type": "notes",
+      "content": "## Introduction\\n\\nGameplay Attribute Sets are fundamental to the GAS system..."
+    },
+    {
+      "type": "code",
+      "language": "cpp",
+      "title": "UMyAttributeSet.h",
+      "content": "#pragma once\\n\\n#include \"CoreMinimal.h\"\\n#include \"GameplayAttribute.h\"\\n#include \"MyAttributeSet.generated.h\"\\n\\nUCLASS()\\nclass UMyAttributeSet : public UGameplayAttributeSet\\n{\\n    GENERATED_BODY()\\npublic:\\n    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = \\\"Attributes\\\")\\n    FGameplayAttributeData Health = 100.0f;\\n\\n    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = \\\"Attributes\\\")\\n    FGameplayAttributeData MaxHealth = 100.0f;\\n};"
+    },
+    {
+      "type": "mermaid",
+      "content": "graph LR\\n    A[AbilitySystemComponent] -->|Contains| B[AttributeSet]\\n    B -->|Manages| C[Attribute Data]\\n    C -->|Used By| D[GameplayEffects]"
+    }
+  ]
+}
+
+## Notes
+- All JSON must be valid (proper escaping, no trailing commas)
+- Use \\\\n for newlines in string values
+- Preview your page after creation to verify formatting`;
+};
+
+// Validate JSON input
+const validateJsonInput = (json: string): { valid: boolean; data?: JsonPageInput; error?: string } => {
+  try {
+    const parsed = JSON.parse(json);
+
+    // Check required fields
+    if (!parsed.title || typeof parsed.title !== 'string') {
+      return { valid: false, error: 'Missing or invalid required field: title (string)' };
+    }
+    if (!parsed.summary || typeof parsed.summary !== 'string') {
+      return { valid: false, error: 'Missing or invalid required field: summary (string)' };
+    }
+    if (!parsed.category || typeof parsed.category !== 'string') {
+      return { valid: false, error: 'Missing or invalid required field: category (string)' };
+    }
+    if (!Array.isArray(parsed.tags)) {
+      return { valid: false, error: 'Missing or invalid required field: tags (array)' };
+    }
+    if (!Array.isArray(parsed.blocks)) {
+      return { valid: false, error: 'Missing or invalid required field: blocks (array)' };
+    }
+
+    // Validate blocks
+    for (let i = 0; i < parsed.blocks.length; i++) {
+      const block = parsed.blocks[i];
+      if (!block.type || !['code', 'notes', 'mermaid'].includes(block.type)) {
+        return { valid: false, error: `Invalid block type at index ${i}` };
+      }
+      if (!block.content || typeof block.content !== 'string') {
+        return { valid: false, error: `Missing content for block at index ${i}` };
+      }
+    }
+
+    return { valid: true, data: parsed as JsonPageInput };
+  } catch (error) {
+    return { valid: false, error: `JSON parse error: ${(error as Error).message}` };
+  }
+};
+
+// Parse JSON to form data
+const parseJsonToFormData = (jsonData: JsonPageInput): CustomPageFormData => {
+  return {
+    title: jsonData.title,
+    summary: jsonData.summary,
+    category: jsonData.category as Category,
+    tags: jsonData.tags,
+    blocks: jsonData.blocks.map((block, index) => ({
+      id: block.id || `block-${Date.now()}-${index}`,
+      type: block.type as BlockType,
+      content: block.content,
+      language: block.language,
+      title: block.title,
+    })),
+  };
+};
+
 export const CreateCustomPage = () => {
   const [formData, setFormData] = useState<CustomPageFormData>({
     title: '',
@@ -98,6 +296,10 @@ export const CreateCustomPage = () => {
     blocks: [],
   });
 
+  const [inputMode, setInputMode] = useState<InputMode>('manual');
+  const [jsonInput, setJsonInput] = useState<string>('');
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
   const [previewMermaid, setPreviewMermaid] = useState<Record<string, string>>({});
   const [mermaidErrors, setMermaidErrors] = useState<Record<string, string>>({});
   const [generatedMarkdown, setGeneratedMarkdown] = useState<string>('');
@@ -106,6 +308,12 @@ export const CreateCustomPage = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState('');
+  const [mongodbStatus, setMongodbStatus] = useState<{ configured: boolean; checked: boolean }>({
+    configured: false,
+    checked: false,
+  });
+
+  const { enqueueSnackbar } = useSnackbar();
 
   // Initialize mermaid
   useEffect(() => {
@@ -123,6 +331,14 @@ export const CreateCustomPage = () => {
         noteTextColor: '#000',
         fontSize: '14px',
       },
+    });
+  }, []);
+
+  // Check MongoDB configuration
+  useEffect(() => {
+    setMongodbStatus({
+      configured: isMongoConfigured(),
+      checked: true,
     });
   }, []);
 
@@ -277,10 +493,42 @@ export const CreateCustomPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Database save functionality (skeleton)
+  // Copy JSON prompt to clipboard
+  const copyJsonPrompt = async () => {
+    const prompt = generateJsonPrompt();
+    try {
+      await navigator.clipboard.writeText(prompt);
+      enqueueSnackbar('Prompt copied to clipboard!', { variant: 'success' });
+    } catch (error) {
+      enqueueSnackbar('Failed to copy prompt', { variant: 'error' });
+    }
+  };
+
+  // Apply JSON to form data
+  const applyJsonToForm = () => {
+    const validation = validateJsonInput(jsonInput);
+
+    if (!validation.valid) {
+      setJsonError(validation.error || 'Invalid JSON');
+      return;
+    }
+
+    const parsedFormData = parseJsonToFormData(validation.data!);
+    setFormData(parsedFormData);
+    enqueueSnackbar('JSON applied to form! Review and save.', { variant: 'success' });
+    setInputMode('manual'); // Switch back to manual for review
+  };
+
+  // Database save functionality (using MongoDB)
   const handleSaveToDatabase = async () => {
     if (!formData.title.trim()) {
       setSaveMessage('Please enter a title');
+      setSaveStatus('error');
+      return;
+    }
+
+    if (!isMongoConfigured()) {
+      setSaveMessage('MongoDB is not configured. Please set VITE_MONGO_URL environment variable.');
       setSaveStatus('error');
       return;
     }
@@ -291,31 +539,24 @@ export const CreateCustomPage = () => {
 
     try {
       const slug = generateSlug(formData.title);
-      const record: Partial<CustomPageRecord> = {
+      const record = {
         title: formData.title,
         slug: slug || `custom-page-${Date.now()}`,
         summary: formData.summary,
         category: formData.category,
         tags: formData.tags,
         blocks: formData.blocks,
+        published: true,
       };
 
-      // TODO: Uncomment when Supabase is configured
-      // import { supabase } from '../lib/supabase';
-      // const { data, error } = await supabase
-      //   .from('custom_pages')
-      //   .upsert(record)
-      //   .select();
-      //
-      // if (error) throw error;
+      const { data, error } = await customPagesApi.create(record);
 
-      // Simulate save for now
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      console.log('Would save to database:', JSON.stringify(record, null, 2));
+      if (error) {
+        throw new Error(error);
+      }
 
       setSaveStatus('success');
-      setSaveMessage('Page saved! (Database integration pending - see console for data)');
+      setSaveMessage(`Page "${formData.title}" saved successfully!`);
     } catch (err) {
       console.error('Save error:', err);
       setSaveStatus('error');
@@ -332,6 +573,13 @@ export const CreateCustomPage = () => {
         Create a new page with dynamic content blocks. Add code, notes, or mermaid diagrams.
       </Typography>
 
+      {/* MongoDB Status Alert */}
+      {mongodbStatus.checked && !mongodbStatus.configured && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          MongoDB is not configured. Set VITE_MONGO_URL environment variable to enable database saving.
+        </Alert>
+      )}
+
       <Grid container spacing={4}>
         {/* Form Section */}
         <Grid item xs={12} lg={7}>
@@ -345,297 +593,381 @@ export const CreateCustomPage = () => {
               borderColor: 'divider',
             }}
           >
-            {/* Metadata Section */}
-            <Typography variant="h6" gutterBottom>
-              Page Metadata
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 4 }}>
-              <TextField
-                label="Title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                fullWidth
-                required
-                placeholder="e.g., My Custom Architecture"
-              />
-
-              <TextField
-                label="Summary"
-                value={formData.summary}
-                onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                fullWidth
-                multiline
-                rows={3}
-                placeholder="Brief description of the page content"
-              />
-
-              <FormControl fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={formData.category}
-                  label="Category"
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value as Category })
-                  }
-                >
-                  {categories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <Autocomplete
-                multiple
-                options={suggestedTags}
-                value={formData.tags}
-                onChange={(_, newValue) => setFormData({ ...formData, tags: newValue })}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => {
-                    const { key, ...tagProps } = getTagProps({ index });
-                    return (
-                      <Chip
-                        key={key}
-                        label={option}
-                        size="small"
-                        sx={{
-                          bgcolor: getTagColor(option),
-                          color: '#fff',
-                        }}
-                        {...tagProps}
-                      />
-                    );
-                  })
-                }
-                renderInput={(params) => (
-                  <TextField {...params} label="Tags" placeholder="Add tags" />
-                )}
-              />
-            </Box>
-
-            <Divider sx={{ my: 3 }} />
-
-            {/* Blocks Section */}
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                mb: 2,
-              }}
+            {/* Input Mode Tabs */}
+            <Tabs
+              value={inputMode}
+              onChange={(_, newValue) => setInputMode(newValue)}
+              indicatorColor="primary"
+              textColor="primary"
+              sx={{ mb: 3 }}
             >
-              <Typography variant="h6">Content Blocks</Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={(e) => setAddBlockAnchor(e.currentTarget)}
-                startIcon={<AddIcon />}
-              >
-                Add Block
-              </Button>
-              <Menu
-                anchorEl={addBlockAnchor}
-                open={Boolean(addBlockAnchor)}
-                onClose={() => setAddBlockAnchor(null)}
-              >
-                {(['code', 'notes', 'mermaid'] as BlockType[]).map((type) => (
-                  <MenuItem key={type} onClick={() => addBlock(type)}>
-                    <ListItemIcon>{blockTypeIcons[type]}</ListItemIcon>
-                    <ListItemText>{blockTypeLabels[type]}</ListItemText>
-                  </MenuItem>
-                ))}
-              </Menu>
-            </Box>
+              <Tab label="Manual Input" value="manual" />
+              <Tab label="JSON Input" value="json" />
+            </Tabs>
 
-            {formData.blocks.length === 0 && (
-              <Alert severity="info" sx={{ mb: 2 }}>
-                No blocks added yet. Click "Add Block" to add content.
-              </Alert>
+            {/* JSON Input Mode */}
+            {inputMode === 'json' && (
+              <Box sx={{ mb: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="subtitle1">
+                    Paste your JSON page data below
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<CopyIcon />}
+                    onClick={copyJsonPrompt}
+                  >
+                    Copy This Prompt
+                  </Button>
+                </Box>
+
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={15}
+                  value={jsonInput}
+                  onChange={(e) => {
+                    setJsonInput(e.target.value);
+                    setJsonError(null);
+                  }}
+                  placeholder={`{\n  "title": "Page Title",\n  "summary": "Summary...",\n  "category": "architecture",\n  "tags": ["GAS", "Animation"],\n  "blocks": [\n    {\n      "type": "notes",\n      "content": "Your content..."\n    }\n  ]\n}`}
+                  error={!!jsonError}
+                  helperText={jsonError}
+                  sx={{
+                    mb: 2,
+                    fontFamily: 'monospace',
+                    '& .MuiInputBase-input': {
+                      fontFamily: 'monospace',
+                      fontSize: '0.85rem',
+                    },
+                  }}
+                />
+
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="contained"
+                    onClick={applyJsonToForm}
+                    disabled={!jsonInput.trim()}
+                  >
+                    Apply JSON to Form
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setJsonInput('');
+                      setJsonError(null);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </Box>
+
+                <Collapse in={!!jsonError}>
+                  <Alert severity="error" sx={{ mt: 2 }}>
+                    {jsonError}
+                  </Alert>
+                </Collapse>
+              </Box>
             )}
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {formData.blocks.map((block, index) => (
-                <Card
-                  key={block.id}
-                  variant="outlined"
-                  sx={{ bgcolor: 'rgba(97, 218, 251, 0.03)' }}
-                >
-                  <CardContent sx={{ pb: 1 }}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        mb: 2,
-                      }}
+            {/* Manual Input Mode */}
+            {inputMode === 'manual' && (
+              <>
+                {/* Metadata Section */}
+                <Typography variant="h6" gutterBottom>
+                  Page Metadata
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mb: 4 }}>
+                  <TextField
+                    label="Title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    fullWidth
+                    required
+                    placeholder="e.g., My Custom Architecture"
+                  />
+
+                  <TextField
+                    label="Summary"
+                    value={formData.summary}
+                    onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                    fullWidth
+                    multiline
+                    rows={3}
+                    placeholder="Brief description of the page content"
+                    helperText={`${formData.summary.length}/200 characters (recommended max)`}
+                  />
+
+                  <FormControl fullWidth>
+                    <InputLabel>Category</InputLabel>
+                    <Select
+                      value={formData.category}
+                      label="Category"
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value as Category })
+                      }
                     >
-                      <DragIcon sx={{ color: 'text.secondary', cursor: 'grab' }} />
-                      <Chip
-                        icon={blockTypeIcons[block.type] as React.ReactElement}
-                        label={blockTypeLabels[block.type]}
-                        size="small"
-                        color={
-                          block.type === 'code'
-                            ? 'primary'
-                            : block.type === 'mermaid'
-                            ? 'secondary'
-                            : 'default'
-                        }
-                      />
-                      <TextField
-                        size="small"
-                        label="Title"
-                        value={block.title || ''}
-                        onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-                        sx={{ ml: 'auto', minWidth: 150 }}
-                      />
-                      <IconButton
-                        size="small"
-                        onClick={() => moveBlock(index, 'up')}
-                        disabled={index === 0}
-                      >
-                        <ExpandMoreIcon sx={{ transform: 'rotate(180deg)' }} />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={() => moveBlock(index, 'down')}
-                        disabled={index === formData.blocks.length - 1}
-                      >
-                        <ExpandMoreIcon />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => removeBlock(block.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
+                      {categories.map((cat) => (
+                        <MenuItem key={cat} value={cat}>
+                          {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-                    {block.type === 'code' && (
-                      <>
-                        <FormControl size="small" sx={{ mb: 2, minWidth: 120 }}>
-                          <InputLabel>Language</InputLabel>
-                          <Select
-                            value={block.language || 'cpp'}
-                            label="Language"
-                            onChange={(e) =>
-                              updateBlock(block.id, { language: e.target.value })
-                            }
-                          >
-                            <MenuItem value="cpp">C++</MenuItem>
-                            <MenuItem value="csharp">C#</MenuItem>
-                            <MenuItem value="typescript">TypeScript</MenuItem>
-                            <MenuItem value="python">Python</MenuItem>
-                            <MenuItem value="text">Text</MenuItem>
-                          </Select>
-                        </FormControl>
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={8}
-                          value={block.content}
-                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                          placeholder="Enter your code here..."
-                          fontFamily="monospace"
-                        />
-                      </>
+                  <Autocomplete
+                    multiple
+                    options={suggestedTags}
+                    value={formData.tags}
+                    onChange={(_, newValue) => setFormData({ ...formData, tags: newValue })}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => {
+                        const { key, ...tagProps } = getTagProps({ index });
+                        return (
+                          <Chip
+                            key={key}
+                            label={option}
+                            size="small"
+                            sx={{
+                              bgcolor: getTagColor(option),
+                              color: '#fff',
+                            }}
+                            {...tagProps}
+                          />
+                        );
+                      })
+                    }
+                    renderInput={(params) => (
+                      <TextField {...params} label="Tags" placeholder="Add tags" />
                     )}
+                  />
+                </Box>
 
-                    {block.type === 'notes' && (
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={6}
-                        value={block.content}
-                        onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                        placeholder="Enter your notes here..."
-                        helperText="Notes will be rendered as a text code block"
-                      />
-                    )}
+                <Divider sx={{ my: 3 }} />
 
-                    {block.type === 'mermaid' && (
-                      <Box>
-                        <TextField
-                          fullWidth
-                          multiline
-                          rows={8}
-                          value={block.content}
-                          onChange={(e) => updateBlock(block.id, { content: e.target.value })}
-                          placeholder="flowchart TD
-    A[Start] --> B[Process]
-    B --> C[End]"
-                          fontFamily="monospace"
-                          sx={{
-                            '& .MuiInputBase-input': {
-                              fontFamily: 'monospace',
-                              fontSize: '0.85rem',
-                            },
-                          }}
-                        />
-                        {mermaidErrors[block.id] && (
-                          <Alert severity="error" sx={{ mt: 1 }}>
-                            {mermaidErrors[block.id]}
-                          </Alert>
-                        )}
-                      </Box>
-                    )}
-                  </CardContent>
+                {/* Blocks Section */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="h6">Content Blocks</Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={(e) => setAddBlockAnchor(e.currentTarget)}
+                    startIcon={<AddIcon />}
+                  >
+                    Add Block
+                  </Button>
+                  <Menu
+                    anchorEl={addBlockAnchor}
+                    open={Boolean(addBlockAnchor)}
+                    onClose={() => setAddBlockAnchor(null)}
+                  >
+                    {(['code', 'notes', 'mermaid'] as BlockType[]).map((type) => (
+                      <MenuItem key={type} onClick={() => addBlock(type)}>
+                        <ListItemIcon>{blockTypeIcons[type]}</ListItemIcon>
+                        <ListItemText>{blockTypeLabels[type]}</ListItemText>
+                      </MenuItem>
+                    ))}
+                  </Menu>
+                </Box>
 
-                  {/* Mermaid Preview */}
-                  {block.type === 'mermaid' && previewMermaid[block.id] && (
-                    <Box sx={{ px: 2, pb: 2 }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                        Preview:
-                      </Typography>
-                      <Card
-                        sx={{
-                          bgcolor: '#0d1117',
-                          border: 1,
-                          borderColor: 'rgba(97, 218, 251, 0.3)',
-                          p: 1,
-                        }}
-                      >
+                {formData.blocks.length === 0 && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    No blocks added yet. Click "Add Block" to add content.
+                  </Alert>
+                )}
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {formData.blocks.map((block, index) => (
+                    <Card
+                      key={block.id}
+                      variant="outlined"
+                      sx={{ bgcolor: 'rgba(97, 218, 251, 0.03)' }}
+                    >
+                      <CardContent sx={{ pb: 1 }}>
                         <Box
                           sx={{
-                            '& svg': {
-                              display: 'block',
-                              maxWidth: '100%',
-                              height: 'auto',
-                            },
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            mb: 2,
                           }}
-                          dangerouslySetInnerHTML={{ __html: previewMermaid[block.id] }}
-                        />
-                      </Card>
-                    </Box>
-                  )}
-                </Card>
-              ))}
-            </Box>
+                        >
+                          <DragIcon sx={{ color: 'text.secondary', cursor: 'grab' }} />
+                          <Chip
+                            icon={blockTypeIcons[block.type] as React.ReactElement}
+                            label={blockTypeLabels[block.type]}
+                            size="small"
+                            color={
+                              block.type === 'code'
+                                ? 'primary'
+                                : block.type === 'mermaid'
+                                ? 'secondary'
+                                : 'default'
+                            }
+                          />
+                          <TextField
+                            size="small"
+                            label="Title"
+                            value={block.title || ''}
+                            onChange={(e) => updateBlock(block.id, { title: e.target.value })}
+                            sx={{ ml: 'auto', minWidth: 150 }}
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={() => moveBlock(index, 'up')}
+                            disabled={index === 0}
+                          >
+                            <ExpandMoreIcon sx={{ transform: 'rotate(180deg)' }} />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            onClick={() => moveBlock(index, 'down')}
+                            disabled={index === formData.blocks.length - 1}
+                          >
+                            <ExpandMoreIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => removeBlock(block.id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
 
-            {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={handleSaveToDatabase}
-                startIcon={<SaveIcon />}
-                disabled={!formData.title.trim()}
-              >
-                Save to Database
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={downloadMarkdown}
-                startIcon={<DownloadIcon />}
-                disabled={!formData.title.trim()}
-              >
-                Download Markdown
-              </Button>
-            </Box>
+                        {block.type === 'code' && (
+                          <>
+                            <FormControl size="small" sx={{ mb: 2, minWidth: 120 }}>
+                              <InputLabel>Language</InputLabel>
+                              <Select
+                                value={block.language || 'cpp'}
+                                label="Language"
+                                onChange={(e) =>
+                                  updateBlock(block.id, { language: e.target.value })
+                                }
+                              >
+                                <MenuItem value="cpp">C++</MenuItem>
+                                <MenuItem value="csharp">C#</MenuItem>
+                                <MenuItem value="typescript">TypeScript</MenuItem>
+                                <MenuItem value="python">Python</MenuItem>
+                                <MenuItem value="text">Text</MenuItem>
+                              </Select>
+                            </FormControl>
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={8}
+                              value={block.content}
+                              onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+                              placeholder="Enter your code here..."
+                              fontFamily="monospace"
+                            />
+                          </>
+                        )}
+
+                        {block.type === 'notes' && (
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={6}
+                            value={block.content}
+                            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+                            placeholder="Enter your notes here..."
+                            helperText="Notes will be rendered as a text code block"
+                          />
+                        )}
+
+                        {block.type === 'mermaid' && (
+                          <Box>
+                            <TextField
+                              fullWidth
+                              multiline
+                              rows={8}
+                              value={block.content}
+                              onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+                              placeholder="flowchart TD
+    A[Start] --> B[Process]
+    B --> C[End]"
+                              fontFamily="monospace"
+                              sx={{
+                                '& .MuiInputBase-input': {
+                                  fontFamily: 'monospace',
+                                  fontSize: '0.85rem',
+                                },
+                              }}
+                            />
+                            {mermaidErrors[block.id] && (
+                              <Alert severity="error" sx={{ mt: 1 }}>
+                                {mermaidErrors[block.id]}
+                              </Alert>
+                            )}
+                          </Box>
+                        )}
+                      </CardContent>
+
+                      {/* Mermaid Preview */}
+                      {block.type === 'mermaid' && previewMermaid[block.id] && (
+                        <Box sx={{ px: 2, pb: 2 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                            Preview:
+                          </Typography>
+                          <Card
+                            sx={{
+                              bgcolor: '#0d1117',
+                              border: 1,
+                              borderColor: 'rgba(97, 218, 251, 0.3)',
+                              p: 1,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                '& svg': {
+                                  display: 'block',
+                                  maxWidth: '100%',
+                                  height: 'auto',
+                                },
+                              }}
+                              dangerouslySetInnerHTML={{ __html: previewMermaid[block.id] }}
+                            />
+                          </Card>
+                        </Box>
+                      )}
+                    </Card>
+                  ))}
+                </Box>
+
+                {/* Action Buttons */}
+                <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={handleSaveToDatabase}
+                    startIcon={<SaveIcon />}
+                    disabled={!formData.title.trim() || !mongodbStatus.configured}
+                  >
+                    Save to Database
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={downloadMarkdown}
+                    startIcon={<DownloadIcon />}
+                    disabled={!formData.title.trim()}
+                  >
+                    Download Markdown
+                  </Button>
+                </Box>
+              </>
+            )}
           </Paper>
         </Grid>
 
