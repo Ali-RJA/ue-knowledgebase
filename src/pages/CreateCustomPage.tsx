@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   TextField,
@@ -54,7 +54,7 @@ const SUPPORTED_LANGUAGES: CodeLanguage[] = [
   'javascript', 'typescript', 'json', 'python', 'sql', 'bash', 'shell'
 ];
 
-const BLOCK_TYPES: { value: BlockType; label: string; icon: JSX.Element }[] = [
+const BLOCK_TYPES: { value: BlockType; label: string; icon: React.ReactNode }[] = [
   { value: 'code', label: 'Code', icon: <CodeIcon fontSize="small" /> },
   { value: 'notes', label: 'Notes', icon: <NotesIcon fontSize="small" /> },
   { value: 'mermaid', label: 'Mermaid Diagram', icon: <AccountTreeIcon fontSize="small" /> },

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card, CardContent, Typography, Box, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import type { ContentItem } from '../../types/content';
@@ -6,16 +7,18 @@ import ArticleIcon from '@mui/icons-material/Article';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import CollectionsIcon from '@mui/icons-material/Collections';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 interface ContentCardProps {
   content: ContentItem;
 }
 
-const iconMap = {
+const iconMap: Record<string, React.ReactNode> = {
   topic: <ArticleIcon />,
   'lego-piece': <ExtensionIcon />,
   diagram: <AccountTreeIcon />,
   collection: <CollectionsIcon />,
+  'custom-page': <DescriptionIcon />,
 };
 
 export const ContentCard = ({ content }: ContentCardProps) => {
@@ -31,6 +34,8 @@ export const ContentCard = ({ content }: ContentCardProps) => {
         return `/diagram/${content.slug}`;
       case 'collection':
         return `/collection/${content.slug}`;
+      case 'custom-page':
+        return `/custom/${content.slug}`;
       default:
         return '/';
     }
