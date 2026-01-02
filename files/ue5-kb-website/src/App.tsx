@@ -13,6 +13,7 @@ import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { AnimNotifyArchitecturePage } from './pages/AnimNotifyArchitecturePage';
 import { SearchPage } from './pages/SearchPage';
 import { AboutPage } from './pages/AboutPage';
+import { CreateCustomPage } from './pages/CreateCustomPage';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             {/* Utility pages */}
             <Route path="/search" element={<SearchPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/create-custom-page" element={<CreateCustomPage />} />
           </Routes>
         </AppShell>
       </Router>

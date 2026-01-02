@@ -18,6 +18,7 @@ import ExtensionIcon from '@mui/icons-material/Extension';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import InfoIcon from '@mui/icons-material/Info';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 
 const menuItems = [
   {
@@ -55,6 +56,11 @@ const menuItems = [
     title: 'About',
     path: '/about',
     icon: <InfoIcon />,
+  },
+  {
+    title: 'Create Custom Page',
+    path: '/create-custom-page',
+    icon: <AddCircleIcon />,
   },
 ];
 
