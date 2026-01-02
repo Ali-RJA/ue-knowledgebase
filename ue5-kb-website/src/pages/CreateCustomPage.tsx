@@ -573,7 +573,7 @@ export const CreateCustomPage = () => {
 
       <Grid container spacing={4}>
         {/* Form Section */}
-        <Grid xs={12} lg={7}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Paper
             elevation={0}
             sx={{
@@ -965,7 +965,7 @@ export const CreateCustomPage = () => {
         </Grid>
 
         {/* Preview Section */}
-        <Grid xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Paper
             elevation={0}
             sx={{
