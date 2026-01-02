@@ -5,7 +5,6 @@ import {
   Button,
   Typography,
   Paper,
-  Grid,
   FormControl,
   InputLabel,
   Select,
@@ -28,7 +27,7 @@ import {
   Tabs,
   Tab,
   Collapse,
-  Snackbar,
+  Grid2 as Grid,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -43,11 +42,10 @@ import {
   Save as SaveIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import { useSnackbar } from 'notqueue';
 import mermaid from 'mermaid';
 import type { Category } from '../types/content';
 import { tagColors, getTagColor, allTags } from '../data/tags';
-import { customPagesApi, isMongoConfigured, CustomPageBlock } from '../lib/mongodb';
+import { customPagesApi, isMongoConfigured } from '../lib/mongodb';
 
 // Block types
 type BlockType = 'code' | 'notes' | 'mermaid';
@@ -100,18 +98,6 @@ const blockTypeIcons: Record<BlockType, React.ReactNode> = {
   notes: <NotesIcon fontSize="small" />,
   mermaid: <DiagramIcon fontSize="small" />,
 };
-
-// Database types (for MongoDB integration)
-interface CustomPageRecord {
-  id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  category: Category;
-  tags: string[];
-  blocks: ContentBlock[];
-  created_at: string;
-}
 
 // Generate JSON prompt for copy functionality
 const generateJsonPrompt = (): string => {
@@ -313,7 +299,12 @@ export const CreateCustomPage = () => {
     checked: false,
   });
 
-  const { enqueueSnackbar } = useSnackbar();
+  // Simple snackbar state
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
   // Initialize mermaid
   useEffect(() => {
@@ -498,9 +489,9 @@ export const CreateCustomPage = () => {
     const prompt = generateJsonPrompt();
     try {
       await navigator.clipboard.writeText(prompt);
-      enqueueSnackbar('Prompt copied to clipboard!', { variant: 'success' });
+      setSnackbar({ open: true, message: 'Prompt copied to clipboard!', severity: 'success' });
     } catch (error) {
-      enqueueSnackbar('Failed to copy prompt', { variant: 'error' });
+      setSnackbar({ open: true, message: 'Failed to copy prompt', severity: 'error' });
     }
   };
 
@@ -515,7 +506,7 @@ export const CreateCustomPage = () => {
 
     const parsedFormData = parseJsonToFormData(validation.data!);
     setFormData(parsedFormData);
-    enqueueSnackbar('JSON applied to form! Review and save.', { variant: 'success' });
+    setSnackbar({ open: true, message: 'JSON applied to form! Review and save.', severity: 'success' });
     setInputMode('manual'); // Switch back to manual for review
   };
 
@@ -549,7 +540,7 @@ export const CreateCustomPage = () => {
         published: true,
       };
 
-      const { data, error } = await customPagesApi.create(record);
+      const { error } = await customPagesApi.create(record);
 
       if (error) {
         throw new Error(error);
@@ -582,7 +573,7 @@ export const CreateCustomPage = () => {
 
       <Grid container spacing={4}>
         {/* Form Section */}
-        <Grid item xs={12} lg={7}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <Paper
             elevation={0}
             sx={{
@@ -636,7 +627,6 @@ export const CreateCustomPage = () => {
                   helperText={jsonError}
                   sx={{
                     mb: 2,
-                    fontFamily: 'monospace',
                     '& .MuiInputBase-input': {
                       fontFamily: 'monospace',
                       fontSize: '0.85rem',
@@ -869,7 +859,11 @@ export const CreateCustomPage = () => {
                               value={block.content}
                               onChange={(e) => updateBlock(block.id, { content: e.target.value })}
                               placeholder="Enter your code here..."
-                              fontFamily="monospace"
+                              sx={{
+                                '& .MuiInputBase-input': {
+                                  fontFamily: 'monospace',
+                                },
+                              }}
                             />
                           </>
                         )}
@@ -897,7 +891,6 @@ export const CreateCustomPage = () => {
                               placeholder="flowchart TD
     A[Start] --> B[Process]
     B --> C[End]"
-                              fontFamily="monospace"
                               sx={{
                                 '& .MuiInputBase-input': {
                                   fontFamily: 'monospace',
@@ -972,7 +965,7 @@ export const CreateCustomPage = () => {
         </Grid>
 
         {/* Preview Section */}
-        <Grid item xs={12} lg={5}>
+        <Grid size={{ xs: 12, lg: 5 }}>
           <Paper
             elevation={0}
             sx={{
@@ -1071,6 +1064,20 @@ export const CreateCustomPage = () => {
           )}
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar */}
+      <Alert
+        severity={snackbar.severity}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+          display: snackbar.open ? 'flex' : 'none',
+        }}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        {snackbar.message}
+      </Alert>
     </Box>
   );
 };
