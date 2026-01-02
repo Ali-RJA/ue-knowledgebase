@@ -1,0 +1,19 @@
+flowchart TD
+    subgraph Recipe["1. THE RECIPE (Static)"]
+        GE["<b>Gameplay Effect Class</b><br/>'Damage Target'"]
+    end
+
+    subgraph Cooking["2. THE SPEC (Snapshot)"]
+        Spec["<b>FGameplayEffectSpec</b><br/>• Source: Player<br/>• Level: 10<br/>• Magnitude: 45.5<br/>• Crit: True"]
+    end
+
+    subgraph Eating["3. THE APPLICATION (Active)"]
+        Target["<b>Target ASC</b><br/>Reduces Health by 45.5"]
+    end
+
+    GE -->|"MakeOutgoingSpec()"| Spec
+    Spec -->|"ApplyGameplayEffectSpecToTarget()"| Target
+
+    style GE fill:#1a365d,stroke:#2c5282,color:#fff
+    style Spec fill:#b7791f,stroke:#d69e2e,color:#000
+    style Target fill:#22543d,stroke:#276749,color:#fff

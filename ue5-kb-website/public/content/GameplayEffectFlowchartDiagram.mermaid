@@ -1,0 +1,11 @@
+flowchart LR
+    Give["<b>ASC->GiveAbility()</b><br/>Stores the Spec"]
+    Return["<b>Returns Handle</b><br/>(ID: 101)"]
+    Use["<b>ASC->TryActivate(Handle)</b><br/>Uses ID 101"]
+
+    Give --> Return
+    Return --> Use
+
+    style Give fill:#1a365d,stroke:#2c5282,color:#fff
+    style Return fill:#b7791f,stroke:#d69e2e,color:#000
+    style Use fill:#22543d,stroke:#276749,color:#fff
