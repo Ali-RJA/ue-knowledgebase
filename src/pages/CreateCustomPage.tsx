@@ -77,7 +77,7 @@ const JSON_TEMPLATE = `{
     {
       "id": "block-1",
       "type": "notes",
-      "content": "# Introduction\\n\\nThis is a notes block with markdown support.",
+      "content": "# Introduction\\n\\nThis is a notes block with **markdown** support.",
       "title": "Introduction"
     },
     {
@@ -92,6 +92,12 @@ const JSON_TEMPLATE = `{
       "type": "mermaid",
       "content": "flowchart TD\\n    A[Start] --> B[Process]\\n    B --> C[End]",
       "title": "Flow Diagram"
+    },
+    {
+      "id": "block-4",
+      "type": "table",
+      "content": "Name,Type,Description\\n\`Variable1\`,int,An integer value\\n\`Variable2\`,float,A floating point value",
+      "title": "Data Table"
     }
   ],
   "published": true
