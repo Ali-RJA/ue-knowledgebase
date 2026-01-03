@@ -41,6 +41,7 @@ import type { Category, ContentBlock, BlockType, CodeLanguage, CustomPageInput }
 import { allTags } from '../data/tags';
 import { CodeBlock } from '../components/content/CodeBlock';
 import { MermaidDiagram } from '../components/content/MermaidDiagram';
+import { MarkdownRenderer } from '../components/content/MarkdownRenderer';
 
 // Initialize mermaid
 mermaid.initialize({
@@ -375,20 +376,7 @@ export const CreateCustomPage = () => {
         );
       case 'notes':
         return block.content ? (
-          <Box sx={{
-            '& p': { mb: 1.5, lineHeight: 1.7 },
-            '& h1, & h2, & h3': { mt: 2, mb: 1 },
-            '& code': {
-              bgcolor: alpha('#38bdf8', 0.1),
-              px: 0.75,
-              py: 0.25,
-              borderRadius: 0.5,
-              fontFamily: 'monospace',
-            },
-            whiteSpace: 'pre-wrap',
-          }}>
-            {block.content}
-          </Box>
+          <MarkdownRenderer content={block.content} />
         ) : (
           <Typography color="text.secondary" fontStyle="italic">No notes content</Typography>
         );

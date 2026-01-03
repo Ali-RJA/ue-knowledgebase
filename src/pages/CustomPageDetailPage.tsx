@@ -18,6 +18,7 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import type { CustomPage, ContentBlock } from '../types/content';
 import { CodeBlock } from '../components/content/CodeBlock';
 import { MermaidDiagram } from '../components/content/MermaidDiagram';
+import { MarkdownRenderer } from '../components/content/MarkdownRenderer';
 import { TagChip } from '../components/content/TagChip';
 
 export const CustomPageDetailPage = () => {
@@ -115,26 +116,7 @@ export const CustomPageDetailPage = () => {
         )}
 
         {block.type === 'notes' && (
-          <Box
-            sx={{
-              '& p': { mb: 2, lineHeight: 1.8, color: 'text.secondary' },
-              '& h1, & h2, & h3, & h4': { mt: 3, mb: 1.5, color: 'text.primary' },
-              '& code': {
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                color: 'primary.main',
-                px: 1,
-                py: 0.25,
-                borderRadius: 1,
-                fontFamily: 'monospace',
-                fontSize: '0.875em',
-              },
-              '& ul, & ol': { pl: 2, mb: 2 },
-              '& li': { mb: 0.75, color: 'text.secondary', lineHeight: 1.7 },
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {block.content}
-          </Box>
+          <MarkdownRenderer content={block.content} />
         )}
 
         {block.type === 'mermaid' && (
