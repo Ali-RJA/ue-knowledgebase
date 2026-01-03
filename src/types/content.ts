@@ -3,7 +3,7 @@ export type ContentType = 'topic' | 'lego-piece' | 'diagram' | 'collection' | 'c
 export type Category = 'architecture' | 'core-systems' | 'control' | 'design' | 'custom';
 
 // Block types for custom pages
-export type BlockType = 'code' | 'notes' | 'mermaid';
+export type BlockType = 'code' | 'notes' | 'mermaid' | 'table';
 
 export type CodeLanguage =
   | 'cpp' | 'csharp' | 'blueprint'

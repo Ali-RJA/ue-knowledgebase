@@ -10,15 +10,19 @@ import {
   CircularProgress,
   Alert,
   alpha,
+  Button,
 } from '@mui/material';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import EditIcon from '@mui/icons-material/Edit';
 import CodeIcon from '@mui/icons-material/Code';
 import NotesIcon from '@mui/icons-material/Notes';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import type { CustomPage, ContentBlock } from '../types/content';
 import { CodeBlock } from '../components/content/CodeBlock';
 import { MermaidDiagram } from '../components/content/MermaidDiagram';
 import { MarkdownRenderer } from '../components/content/MarkdownRenderer';
+import { TableBlock } from '../components/content/TableBlock';
 import { TagChip } from '../components/content/TagChip';
 
 export const CustomPageDetailPage = () => {
@@ -56,6 +60,7 @@ export const CustomPageDetailPage = () => {
       case 'code': return <CodeIcon sx={{ color: 'warning.main', fontSize: 20 }} />;
       case 'notes': return <NotesIcon sx={{ color: 'info.main', fontSize: 20 }} />;
       case 'mermaid': return <AccountTreeIcon sx={{ color: 'primary.main', fontSize: 20 }} />;
+      case 'table': return <TableChartIcon sx={{ color: 'success.main', fontSize: 20 }} />;
       default: return null;
     }
   };
@@ -65,12 +70,13 @@ export const CustomPageDetailPage = () => {
       case 'code': return 'warning';
       case 'notes': return 'info';
       case 'mermaid': return 'primary';
+      case 'table': return 'success';
       default: return 'primary';
     }
   };
 
   const renderBlock = (block: ContentBlock) => {
-    const colorKey = getBlockColor(block.type) as 'warning' | 'info' | 'primary';
+    const colorKey = getBlockColor(block.type) as 'warning' | 'info' | 'primary' | 'success';
 
     return (
       <Paper
@@ -122,6 +128,10 @@ export const CustomPageDetailPage = () => {
         {block.type === 'mermaid' && (
           <MermaidDiagram chart={block.content} id={`diagram-${block.id}`} />
         )}
+
+        {block.type === 'table' && (
+          <TableBlock content={block.content} title={block.title} />
+        )}
       </Paper>
     );
   };
@@ -161,9 +171,21 @@ export const CustomPageDetailPage = () => {
 
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
-          {page.title}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 1 }}>
+          <Typography variant="h3" component="h1" fontWeight={700}>
+            {page.title}
+          </Typography>
+          <Button
+            component={RouterLink}
+            to={`/custom/${page.slug}/edit`}
+            variant="outlined"
+            startIcon={<EditIcon />}
+            size="small"
+            sx={{ flexShrink: 0 }}
+          >
+            Edit
+          </Button>
+        </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <Chip

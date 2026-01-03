@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   TextField,
@@ -23,6 +24,7 @@ import {
   Grid,
   FormControlLabel,
   Switch,
+  CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -31,6 +33,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CodeIcon from '@mui/icons-material/Code';
 import NotesIcon from '@mui/icons-material/Notes';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import SaveIcon from '@mui/icons-material/Save';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -41,6 +44,7 @@ import { allTags } from '../data/tags';
 import { CodeBlock } from '../components/content/CodeBlock';
 import { MermaidDiagram } from '../components/content/MermaidDiagram';
 import { MarkdownRenderer } from '../components/content/MarkdownRenderer';
+import { TableBlock } from '../components/content/TableBlock';
 
 // Initialize mermaid
 mermaid.initialize({
@@ -58,6 +62,7 @@ const BLOCK_TYPES: { value: BlockType; label: string; icon: React.ReactNode }[] 
   { value: 'code', label: 'Code', icon: <CodeIcon fontSize="small" /> },
   { value: 'notes', label: 'Notes', icon: <NotesIcon fontSize="small" /> },
   { value: 'mermaid', label: 'Mermaid Diagram', icon: <AccountTreeIcon fontSize="small" /> },
+  { value: 'table', label: 'Table', icon: <TableChartIcon fontSize="small" /> },
 ];
 
 const CATEGORIES: Category[] = ['architecture', 'core-systems', 'control', 'design', 'custom'];
@@ -97,9 +102,15 @@ Block Types:
 - code: Syntax highlighted code blocks
 - notes: Documentation text (supports markdown)
 - mermaid: Diagram definitions
+- table: CSV-formatted tables (first row = headers)
 
 Supported Languages for code blocks:
 cpp, csharp, blueprint, html, css, javascript, typescript, json, python, sql, bash, shell
+
+Table Format (CSV):
+Header1,Header2,Header3
+Cell1,Cell2,Cell3
+"Quoted, with comma","Use ""double quotes"" to escape",Value
 
 Best Practices:
 1. Use descriptive titles that explain the concept
@@ -130,6 +141,11 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export const CreateCustomPage = () => {
+  // Router hooks
+  const { slug: editSlug } = useParams<{ slug?: string }>();
+  const navigate = useNavigate();
+  const isEditMode = Boolean(editSlug);
+
   // Input mode state
   const [inputMode, setInputMode] = useState<number>(0); // 0 = Manual, 1 = JSON
   const [jsonInput, setJsonInput] = useState<string>('');
@@ -144,6 +160,11 @@ export const CreateCustomPage = () => {
   const [blocks, setBlocks] = useState<BlockState[]>([]);
   const [published, setPublished] = useState(true);
 
+  // Edit mode state
+  const [originalSlug, setOriginalSlug] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
   // UI state
   const [copied, setCopied] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
@@ -153,8 +174,47 @@ export const CreateCustomPage = () => {
     severity: 'success' | 'error' | 'info';
   }>({ open: false, message: '', severity: 'success' });
 
-  // Auto-generate slug from title
+  // Fetch existing page data when in edit mode
   useEffect(() => {
+    const fetchPage = async () => {
+      if (!editSlug) return;
+
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/custom-pages/${editSlug}`);
+        if (!response.ok) {
+          throw new Error('Page not found');
+        }
+        const data = await response.json();
+
+        // Populate form with existing data
+        setTitle(data.title);
+        setSlug(data.slug);
+        setOriginalSlug(data.slug);
+        setSummary(data.summary || '');
+        setCategory(data.category || 'custom');
+        setTags(data.tags || []);
+        setBlocks(data.blocks.map((block: ContentBlock) => ({ ...block, expanded: true })));
+        setPublished(data.published !== false);
+        setInitialLoadDone(true);
+      } catch (err) {
+        setSnackbar({
+          open: true,
+          message: err instanceof Error ? err.message : 'Failed to load page',
+          severity: 'error',
+        });
+        navigate('/custom-pages');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPage();
+  }, [editSlug, navigate]);
+
+  // Auto-generate slug from title (only in create mode and when slug hasn't been manually set)
+  useEffect(() => {
+    if (isEditMode || initialLoadDone) return;
     if (title && !slug) {
       const generatedSlug = title
         .toLowerCase()
@@ -241,7 +301,7 @@ export const CreateCustomPage = () => {
           setJsonError(`Block ${i + 1} is missing required fields (id, type, content)`);
           return null;
         }
-        if (!['code', 'notes', 'mermaid'].includes(block.type)) {
+        if (!['code', 'notes', 'mermaid', 'table'].includes(block.type)) {
           setJsonError(`Block ${i + 1} has invalid type: ${block.type}`);
           return null;
         }
@@ -292,9 +352,9 @@ export const CreateCustomPage = () => {
       return;
     }
 
-    const pageData: CustomPageInput = {
+    const pageData: CustomPageInput & { newSlug?: string } = {
       title: title.trim(),
-      slug: slug.trim(),
+      slug: isEditMode ? originalSlug : slug.trim(),
       summary: summary.trim(),
       category,
       tags,
@@ -302,9 +362,18 @@ export const CreateCustomPage = () => {
       published,
     };
 
+    // If slug changed in edit mode, include newSlug
+    if (isEditMode && slug.trim() !== originalSlug) {
+      pageData.newSlug = slug.trim();
+    }
+
     try {
-      const response = await fetch('/api/custom-pages', {
-        method: 'POST',
+      const url = isEditMode
+        ? `/api/custom-pages/${originalSlug}`
+        : '/api/custom-pages';
+
+      const response = await fetch(url, {
+        method: isEditMode ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(pageData),
       });
@@ -314,20 +383,29 @@ export const CreateCustomPage = () => {
         throw new Error(error.message || 'Failed to save page');
       }
 
+      const savedPage = await response.json();
+
       setSnackbar({
         open: true,
-        message: 'Page saved successfully!',
+        message: isEditMode ? 'Page updated successfully!' : 'Page saved successfully!',
         severity: 'success',
       });
 
-      // Reset form
-      setTitle('');
-      setSlug('');
-      setSummary('');
-      setCategory('custom');
-      setTags([]);
-      setBlocks([]);
-      setPublished(true);
+      if (isEditMode) {
+        // Navigate to the (possibly new) slug
+        setTimeout(() => {
+          navigate(`/custom/${savedPage.slug}`);
+        }, 1000);
+      } else {
+        // Reset form for create mode
+        setTitle('');
+        setSlug('');
+        setSummary('');
+        setCategory('custom');
+        setTags([]);
+        setBlocks([]);
+        setPublished(true);
+      }
     } catch (error) {
       setSnackbar({
         open: true,
@@ -362,6 +440,7 @@ export const CreateCustomPage = () => {
       case 'code': return <CodeIcon sx={{ color: 'warning.main' }} />;
       case 'notes': return <NotesIcon sx={{ color: 'info.main' }} />;
       case 'mermaid': return <AccountTreeIcon sx={{ color: 'primary.main' }} />;
+      case 'table': return <TableChartIcon sx={{ color: 'success.main' }} />;
     }
   };
 
@@ -385,16 +464,33 @@ export const CreateCustomPage = () => {
         ) : (
           <Typography color="text.secondary" fontStyle="italic">No diagram content</Typography>
         );
+      case 'table':
+        return block.content ? (
+          <TableBlock content={block.content} title={block.title} />
+        ) : (
+          <Typography color="text.secondary" fontStyle="italic">No table content</Typography>
+        );
     }
   };
+
+  // Show loading state when fetching page data
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 3, maxWidth: 1600, mx: 'auto' }}>
       <Typography variant="h3" component="h1" fontWeight={700} gutterBottom>
-        Create Custom Page
+        {isEditMode ? 'Edit Custom Page' : 'Create Custom Page'}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Create a new knowledge base page with code blocks, notes, and diagrams.
+        {isEditMode
+          ? 'Update your custom page content, blocks, and settings.'
+          : 'Create a new knowledge base page with code blocks, notes, and diagrams.'}
       </Typography>
 
       {/* Input Mode Tabs */}
@@ -604,16 +700,17 @@ export const CreateCustomPage = () => {
                             value={block.content}
                             onChange={(e) => updateBlock(block.id, { content: e.target.value })}
                             multiline
-                            rows={block.type === 'code' ? 10 : block.type === 'mermaid' ? 8 : 5}
+                            rows={block.type === 'code' ? 10 : block.type === 'mermaid' ? 8 : block.type === 'table' ? 8 : 5}
                             sx={{
                               '& .MuiInputBase-input': {
-                                fontFamily: block.type !== 'notes' ? 'monospace' : 'inherit',
+                                fontFamily: block.type === 'notes' ? 'inherit' : 'monospace',
                                 fontSize: '0.85rem',
                               },
                             }}
                             placeholder={
                               block.type === 'code' ? '// Enter your code here...' :
                               block.type === 'mermaid' ? 'flowchart TD\n    A[Start] --> B[End]' :
+                              block.type === 'table' ? 'Header1,Header2,Header3\nCell1,Cell2,Cell3\n"Quoted, value","Another ""quoted""",Value' :
                               'Enter your notes here...'
                             }
                           />
@@ -633,7 +730,7 @@ export const CreateCustomPage = () => {
                 startIcon={<SaveIcon />}
                 onClick={handleSave}
               >
-                Save Page
+                {isEditMode ? 'Update Page' : 'Save Page'}
               </Button>
               <Button
                 variant="outlined"
