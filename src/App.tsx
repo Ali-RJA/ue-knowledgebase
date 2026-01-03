@@ -47,6 +47,7 @@ function App() {
             <Route path="/custom-pages" element={<CustomPagesListPage />} />
             <Route path="/create" element={<CreateCustomPage />} />
             <Route path="/custom/:slug" element={<CustomPageDetailPage />} />
+            <Route path="/custom/:slug/edit" element={<CreateCustomPage />} />
 
             {/* Utility pages */}
             <Route path="/search" element={<SearchPage />} />
